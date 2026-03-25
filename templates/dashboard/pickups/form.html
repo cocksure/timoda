@@ -1,0 +1,87 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <form method="POST">
+      {% csrf_token %}
+      <div class="dash-card mb-4">
+        <h6 class="fw-semibold mb-3">Информация</h6>
+        <div class="row g-3">
+          <div class="col-12"><label class="dash-form-label">Название *</label>{{ form.name }}</div>
+          <div class="col-12"><label class="dash-form-label">Адрес *</label>{{ form.address }}</div>
+          <div class="col-md-6"><label class="dash-form-label">Город</label>{{ form.city }}</div>
+          <div class="col-md-6"><label class="dash-form-label">Часы работы</label>{{ form.working_hours }}</div>
+          <div class="col-12"><label class="dash-form-label">Телефон</label>{{ form.phone }}</div>
+        </div>
+      </div>
+
+      <div class="dash-card mb-4">
+        <h6 class="fw-semibold mb-3">Координаты на карте</h6>
+        <p class="text-muted small mb-2">Кликните по карте, чтобы установить метку</p>
+        <div id="pickupFormMap" style="height:280px;border-radius:8px;border:1px solid #E5E0D8;margin-bottom:12px;"></div>
+        <div class="row g-2">
+          <div class="col-6"><label class="dash-form-label">Широта</label>{{ form.latitude }}</div>
+          <div class="col-6"><label class="dash-form-label">Долгота</label>{{ form.longitude }}</div>
+        </div>
+      </div>
+
+      <div class="dash-card mb-4">
+        <h6 class="fw-semibold mb-3">Настройки</h6>
+        <div class="row g-3">
+          <div class="col-md-4"><label class="dash-form-label">Порядок</label>{{ form.order }}</div>
+          <div class="col-12">
+            <div class="form-check">{{ form.is_active }}<label class="form-check-label">Активен</label></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-dark">Сохранить</button>
+        <a href="{% url 'dashboard:pickup_list' %}" class="btn btn-outline-secondary">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const latInput = document.querySelector('[name="latitude"]');
+const lngInput = document.querySelector('[name="longitude"]');
+const initLat = parseFloat(latInput.value) || 41.2995;
+const initLng = parseFloat(lngInput.value) || 69.2401;
+
+const map = L.map('pickupFormMap').setView([initLat, initLng], latInput.value ? 16 : 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+let marker = latInput.value
+  ? L.marker([initLat, initLng], {draggable: true}).addTo(map)
+  : null;
+
+function placeMarker(lat, lng) {
+  latInput.value = lat.toFixed(6);
+  lngInput.value = lng.toFixed(6);
+  if (marker) marker.setLatLng([lat, lng]);
+  else { marker = L.marker([lat, lng], {draggable: true}).addTo(map); bindDrag(); }
+}
+function bindDrag() {
+  marker.on('dragend', e => {
+    const p = e.target.getLatLng();
+    latInput.value = p.lat.toFixed(6);
+    lngInput.value = p.lng.toFixed(6);
+  });
+}
+if (marker) bindDrag();
+map.on('click', e => { placeMarker(e.latlng.lat, e.latlng.lng); map.setView(e.latlng, 16); });
+</script>
+{% endblock %}

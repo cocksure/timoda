@@ -1,0 +1,81 @@
+{% load static %}
+{% with first_variant=product.variants.first %}
+<div class="col-6 col-md-4 col-xl-3">
+  <div class="product-card {% if dark %}product-card-dark{% endif %}">
+    <a href="{% url 'products:detail' product.slug %}" class="product-card-img-link">
+      <div class="product-card-img-wrap">
+        {% if product.primary_image %}
+        <img src="{{ product.primary_image.image.url }}"
+             alt="{{ product.primary_image.alt_text|default:product.name }}"
+             class="product-card-img" loading="lazy">
+        {% else %}
+        <div class="product-card-img-placeholder">
+          <i class="bi bi-image text-muted"></i>
+        </div>
+        {% endif %}
+        <div class="product-card-badges">
+          {% if product.is_new %}<span class="badge-new">Новинка</span>{% endif %}
+          {% if product.sale_price %}<span class="badge-sale">-{{ product.discount_percent }}%</span>{% endif %}
+        </div>
+        {% if first_variant %}
+        <div class="product-card-actions">
+          <form method="POST"
+                action="{% url 'cart:add' first_variant.id %}"
+                hx-post="{% url 'cart:add' first_variant.id %}"
+                hx-target="#cart-icon-wrap"
+                hx-swap="outerHTML"
+                hx-on::after-request="showCartToast('{{ product.name|escapejs }}')"
+                class="quick-add-form">
+            {% csrf_token %}
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn-quick-add" title="В корзину">
+              <i class="bi bi-bag-plus"></i>
+            </button>
+          </form>
+        </div>
+        {% endif %}
+        {% with imgs=product.images.all %}
+        {% if imgs.count > 1 %}
+        <button class="card-nav-btn card-nav-prev" type="button" aria-label="Предыдущее фото">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <button class="card-nav-btn card-nav-next" type="button" aria-label="Следующее фото">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+        <div class="card-img-dots">
+          {% for img in imgs %}
+          <span class="card-img-dot {% if forloop.first %}active{% endif %}"
+                data-src="{{ img.image.url }}"></span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+    </a>
+    <div class="product-card-body">
+      {% if product.category %}
+      <p class="product-card-category">{{ product.category.name }}</p>
+      {% endif %}
+      <h3 class="product-card-name">
+        <a href="{% url 'products:detail' product.slug %}">{{ product.name }}</a>
+      </h3>
+      {% if product.avg_rating > 0 %}
+      <div class="product-card-rating">
+        {% for i in "12345" %}
+        <i class="bi bi-star{% if forloop.counter <= product.avg_rating %}-fill{% endif %} text-warning small"></i>
+        {% endfor %}
+        <span class="text-muted small ms-1">({{ product.reviews_count }})</span>
+      </div>
+      {% endif %}
+      <div class="product-card-price">
+        {% if product.sale_price %}
+        <span class="price-sale">{{ product.sale_price|floatformat:0 }} сум</span>
+        <span class="price-original">{{ product.price|floatformat:0 }} сум</span>
+        {% else %}
+        <span class="price-current">{{ product.price|floatformat:0 }} сум</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endwith %}

@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Environment variables — НИКОГДА не коммитить!
+.env
+.env.*
+!.env.example
+
+# PyCharm / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Data dumps (могут содержать пароли)
+data.json
+*.json.bak
+
+# Coverage / testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Node (если будет фронтенд)
+node_modules/

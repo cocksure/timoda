@@ -1,0 +1,126 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="dash-card mb-4">
+        <h6 class="fw-semibold mb-3">Текст баннера</h6>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="dash-form-label">Заголовок *</label>
+            {{ form.title }}
+          </div>
+          <div class="col-12">
+            <label class="dash-form-label">Подзаголовок</label>
+            {{ form.subtitle }}
+          </div>
+          <div class="col-md-6">
+            <label class="dash-form-label">Текст кнопки</label>
+            {{ form.button_text }}
+          </div>
+          <div class="col-md-6">
+            <label class="dash-form-label">Ссылка кнопки</label>
+            {{ form.button_link }}
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-card mb-4">
+        <h6 class="fw-semibold mb-3">Медиа</h6>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="dash-form-label">
+              Фото (обязательно) *
+              <span class="text-muted fw-normal">— используется как постер для видео и на мобильных</span>
+            </label>
+            {% if banner.image %}
+            <div class="mb-2">
+              <img src="{{ banner.image.url }}" style="height:80px;border-radius:6px;object-fit:cover;">
+            </div>
+            {% endif %}
+            {{ form.image }}
+          </div>
+
+          <div class="col-12">
+            <label class="dash-form-label">
+              Фото для мобильных
+              <span class="text-muted fw-normal">— вертикальное, если отличается от десктопного</span>
+            </label>
+            {% if banner.image_mobile %}
+            <div class="mb-2">
+              <img src="{{ banner.image_mobile.url }}" style="height:60px;border-radius:6px;object-fit:cover;">
+            </div>
+            {% endif %}
+            {{ form.image_mobile }}
+          </div>
+
+          <div class="col-12">
+            <label class="dash-form-label">
+              Видео (MP4 / WebM)
+              <span class="text-muted fw-normal">— воспроизводится беззвучно в фоне на десктопе</span>
+            </label>
+            {% if banner.video %}
+            <div class="mb-2 d-flex align-items-center gap-2">
+              <i class="bi bi-play-circle text-primary"></i>
+              <span class="small text-muted">Видео загружено: {{ banner.video.name|cut:"banners/videos/" }}</span>
+              <span class="badge bg-primary-subtle text-primary border">Активно</span>
+            </div>
+            {% endif %}
+            {{ form.video }}
+            <p class="text-muted small mt-1 mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              Рекомендуется: MP4 (H.264), 1920×1080, до 15 МБ. Видео заменяет фон на десктопе.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-card mb-4">
+        <h6 class="fw-semibold mb-3">Настройки</h6>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="dash-form-label">Порядок показа</label>
+            {{ form.order }}
+          </div>
+          <div class="col-12">
+            <div class="form-check">
+              {{ form.is_active }}
+              <label class="form-check-label">Активен (виден на главной)</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if form.errors %}
+      <div class="alert alert-danger py-2">
+        {% for field, errors in form.errors.items %}
+        {% for error in errors %}<p class="mb-0 small">{{ field }}: {{ error }}</p>{% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-dark">Сохранить</button>
+        <a href="{% url 'dashboard:banner_list' %}" class="btn btn-outline-secondary">Отмена</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="dash-card">
+      <h6 class="fw-semibold mb-3">Как это работает</h6>
+      <ul class="small text-muted ps-3 mb-0">
+        <li class="mb-2">Фото — обязательно. Отображается на мобильных и как превью.</li>
+        <li class="mb-2">Видео — необязательно. На десктопе заменяет фото анимированным фоном (autoplay, без звука).</li>
+        <li class="mb-2">Порядок: 0 = первый баннер в карусели.</li>
+        <li>Если баннеров несколько — между ними появляются стрелки и точки-навигаторы.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

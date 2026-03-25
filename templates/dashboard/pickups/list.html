@@ -1,0 +1,46 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Пункты выдачи{% endblock %}
+{% block page_title %}Пункты выдачи{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+  <a href="{% url 'dashboard:pickup_add' %}" class="btn btn-sm btn-dark">
+    <i class="bi bi-plus-lg me-1"></i>Добавить пункт
+  </a>
+</div>
+<div class="dash-card p-0">
+  <table class="table dash-table mb-0">
+    <thead>
+      <tr><th>Название</th><th>Адрес</th><th>Часы</th><th>Координаты</th><th>Статус</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for point in points %}
+      <tr>
+        <td class="fw-semibold">{{ point.name }}</td>
+        <td class="small text-muted">{{ point.address }}</td>
+        <td class="small text-muted">{{ point.working_hours|default:"—" }}</td>
+        <td class="small text-muted">
+          {% if point.latitude %}{{ point.latitude }}, {{ point.longitude }}{% else %}—{% endif %}
+        </td>
+        <td>
+          {% if point.is_active %}<span class="badge bg-success-subtle text-success border">Активен</span>
+          {% else %}<span class="badge bg-secondary-subtle text-secondary border">Скрыт</span>{% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{% url 'dashboard:pickup_edit' point.pk %}" class="btn btn-sm btn-outline-dark"><i class="bi bi-pencil"></i></a>
+            <form method="POST" action="{% url 'dashboard:pickup_delete' point.pk %}"
+                  onsubmit="return confirm('Удалить «{{ point.name }}»?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted py-5">Пунктов выдачи нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

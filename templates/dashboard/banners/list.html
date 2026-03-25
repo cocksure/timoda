@@ -1,0 +1,76 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Баннеры{% endblock %}
+{% block page_title %}Баннеры (Hero){% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+  <a href="{% url 'dashboard:banner_add' %}" class="btn btn-sm btn-dark">
+    <i class="bi bi-plus-lg me-1"></i>Добавить баннер
+  </a>
+</div>
+
+<div class="dash-card p-0">
+  <div class="table-responsive">
+    <table class="table dash-table mb-0">
+      <thead>
+        <tr>
+          <th style="width:120px">Превью</th>
+          <th>Заголовок</th>
+          <th>Тип</th>
+          <th>Порядок</th>
+          <th>Статус</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for banner in banners %}
+        <tr>
+          <td>
+            <img src="{{ banner.image.url }}" style="width:100px;height:56px;object-fit:cover;border-radius:4px;">
+          </td>
+          <td>
+            <p class="mb-0 fw-semibold">{{ banner.title }}</p>
+            {% if banner.subtitle %}<p class="mb-0 text-muted small">{{ banner.subtitle }}</p>{% endif %}
+          </td>
+          <td>
+            {% if banner.video %}
+            <span class="badge bg-primary-subtle text-primary border">
+              <i class="bi bi-play-circle me-1"></i>Видео
+            </span>
+            {% else %}
+            <span class="badge bg-light text-dark border">
+              <i class="bi bi-image me-1"></i>Фото
+            </span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ banner.order }}</td>
+          <td>
+            {% if banner.is_active %}
+            <span class="badge bg-success-subtle text-success border">Активен</span>
+            {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border">Скрыт</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'dashboard:banner_edit' banner.pk %}" class="btn btn-sm btn-outline-dark">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{% url 'dashboard:banner_delete' banner.pk %}"
+                    onsubmit="return confirm('Удалить баннер «{{ banner.title }}»?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-5">Баннеров нет</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

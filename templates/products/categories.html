@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Категории — Timoda{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h1 class="section-title mb-4">Категории</h1>
+  <div class="row g-4">
+    {% for category in categories %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{% url 'products:list' %}?category={{ category.slug }}" class="category-card-lg">
+        {% if category.image %}
+        <img src="{{ category.image.url }}" alt="{{ category.name }}" class="category-card-lg-img">
+        {% else %}
+        <div class="category-card-lg-placeholder"><i class="bi bi-grid fs-2"></i></div>
+        {% endif %}
+        <div class="category-card-lg-body">
+          <h5 class="mb-0">{{ category.name }}</h5>
+          {% if category.description %}<p class="small text-muted mt-1 mb-0">{{ category.description|truncatechars:60 }}</p>{% endif %}
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

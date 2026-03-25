@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<!-- Hero Banner -->
+{% if banners %}
+<section class="hero-section">
+  <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="6000">
+    <div class="carousel-inner">
+      {% for banner in banners %}
+      <div class="carousel-item {% if forloop.first %}active{% endif %}">
+        <div class="hero-slide {% if banner.video %}hero-slide-video{% endif %}"
+             {% if not banner.video %}style="background-image: url('{{ banner.image.url }}');"{% endif %}>
+
+          {% if banner.video %}
+          {# Video background — desktop only; image used as poster/fallback #}
+          <video class="hero-video" autoplay muted loop playsinline
+                 poster="{{ banner.image.url }}">
+            <source src="{{ banner.video.url }}" type="video/mp4">
+          </video>
+          {# Mobile fallback image via CSS #}
+          <div class="hero-video-mobile-bg" style="background-image: url('{% if banner.image_mobile %}{{ banner.image_mobile.url }}{% else %}{{ banner.image.url }}{% endif %}');"></div>
+          {% endif %}
+
+          <div class="hero-overlay"></div>
+          <div class="container h-100">
+            <div class="row h-100 align-items-center">
+              <div class="col-lg-6">
+                <div class="hero-content">
+                  <p class="hero-eyebrow">Новая коллекция</p>
+                  <h1 class="hero-title">{{ banner.title }}</h1>
+                  {% if banner.subtitle %}<p class="hero-subtitle">{{ banner.subtitle }}</p>{% endif %}
+                  {% if banner.button_text %}
+                  <a href="{{ banner.button_link|default:'#' }}" class="btn btn-hero">
+                    {{ banner.button_text }} <i class="bi bi-arrow-right ms-2"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if banners|length > 1 %}
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+      <i class="bi bi-chevron-left fs-4 text-white"></i>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+      <i class="bi bi-chevron-right fs-4 text-white"></i>
+    </button>
+    <div class="carousel-indicators hero-indicators">
+      {% for banner in banners %}
+      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ forloop.counter0 }}"
+              {% if forloop.first %}class="active"{% endif %}></button>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% else %}
+<!-- Default hero if no banners -->
+<section class="hero-default">
+  <div class="container text-center py-5">
+    <p class="hero-eyebrow">Добро пожаловать</p>
+    <h1 class="display-3 fw-bold mb-3" style="font-family: 'Playfair Display', serif;">Тепло в каждой нити</h1>
+    <p class="lead text-muted mb-4">Премиальный трикотаж для вашего стиля и комфорта</p>
+    <a href="{% url 'products:list' %}" class="btn btn-hero-dark">Смотреть каталог <i class="bi bi-arrow-right ms-2"></i></a>
+  </div>
+</section>
+{% endif %}
+
+<!-- Categories -->
+{% if categories %}
+<section class="section-categories py-5">
+  <div class="container">
+    <div class="section-header text-center mb-4">
+      <h2 class="section-title">Категории</h2>
+    </div>
+    <div class="row g-3">
+      {% for category in categories %}
+      <div class="col-6 col-md-4 col-lg-2">
+        <a href="{% url 'products:list' %}?category={{ category.slug }}" class="category-card">
+          {% if category.image %}
+          <div class="category-img" style="background-image: url('{{ category.image.url }}');"></div>
+          {% else %}
+          <div class="category-img category-img-placeholder"><i class="bi bi-grid"></i></div>
+          {% endif %}
+          <span class="category-name">{{ category.name }}</span>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- New Arrivals -->
+{% if new_arrivals %}
+<section class="section-products py-5 bg-light-warm">
+  <div class="container">
+    <div class="section-header d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <p class="section-eyebrow">Только что</p>
+        <h2 class="section-title mb-0">Новинки</h2>
+      </div>
+      <a href="{% url 'products:list' %}?is_new=true" class="btn-link-arrow">Все новинки <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="row g-3">
+      {% for product in new_arrivals %}
+      {% include 'products/partials/product_card.html' with product=product %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Banner strip -->
+<section class="promo-strip py-4">
+  <div class="container">
+    <div class="row g-3 text-center">
+      <div class="col-6 col-md-3">
+        <div class="promo-item">
+          <i class="bi bi-truck fs-3 mb-2"></i>
+          <p class="fw-semibold mb-0">Бесплатная доставка</p>
+          <p class="text-muted small">от 300 000 сум</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="promo-item">
+          <i class="bi bi-shield-check fs-3 mb-2"></i>
+          <p class="fw-semibold mb-0">Гарантия качества</p>
+          <p class="text-muted small">100% натуральные материалы</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="promo-item">
+          <i class="bi bi-arrow-return-left fs-3 mb-2"></i>
+          <p class="fw-semibold mb-0">Возврат 14 дней</p>
+          <p class="text-muted small">Без вопросов</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="promo-item">
+          <i class="bi bi-headset fs-3 mb-2"></i>
+          <p class="fw-semibold mb-0">Поддержка 24/7</p>
+          <p class="text-muted small">Всегда на связи</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Products -->
+{% if featured %}
+<section class="section-products py-5">
+  <div class="container">
+    <div class="section-header d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <p class="section-eyebrow">Выбор редакции</p>
+        <h2 class="section-title mb-0">Рекомендуем</h2>
+      </div>
+      <a href="{% url 'products:list' %}?is_featured=true" class="btn-link-arrow">Смотреть все <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="row g-3">
+      {% for product in featured %}
+      {% include 'products/partials/product_card.html' with product=product %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Sale -->
+{% if sale_products %}
+<section class="section-sale py-5 bg-dark-warm text-white">
+  <div class="container">
+    <div class="section-header d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <p class="section-eyebrow text-warning">Скидки</p>
+        <h2 class="section-title text-white mb-0">Распродажа</h2>
+      </div>
+      <a href="{% url 'products:list' %}?sale=1" class="btn-link-arrow text-white">Все акции <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="row g-3">
+      {% for product in sale_products %}
+      {% include 'products/partials/product_card.html' with product=product dark=True %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,54 @@
+{% load static %}
+<footer class="site-footer mt-5">
+  <div class="container">
+    <div class="row g-4 py-5">
+      <div class="col-lg-4">
+        <h5 class="footer-logo mb-3">Timoda</h5>
+        <p class="text-muted small">Премиальный трикотаж ручной работы. Каждое изделие создано с заботой о качестве и комфорте.</p>
+        <div class="social-links mt-3">
+          <a href="#" class="social-link"><i class="bi bi-instagram"></i></a>
+          <a href="#" class="social-link"><i class="bi bi-telegram"></i></a>
+          <a href="#" class="social-link"><i class="bi bi-facebook"></i></a>
+        </div>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6 class="footer-heading">Магазин</h6>
+        <ul class="footer-links">
+          <li><a href="{% url 'products:list' %}">Каталог</a></li>
+          <li><a href="{% url 'products:list' %}?is_new=true">Новинки</a></li>
+          <li><a href="{% url 'products:list' %}?sale=1">Распродажа</a></li>
+          <li><a href="{% url 'products:categories' %}">Категории</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6 class="footer-heading">Аккаунт</h6>
+        <ul class="footer-links">
+          {% if user.is_authenticated %}
+          <li><a href="{% url 'accounts:profile' %}">Профиль</a></li>
+          <li><a href="{% url 'orders:list' %}">Мои заказы</a></li>
+          <li><a href="{% url 'accounts:addresses' %}">Адреса</a></li>
+          {% else %}
+          <li><a href="{% url 'accounts:login' %}">Войти</a></li>
+          <li><a href="{% url 'accounts:register' %}">Регистрация</a></li>
+          {% endif %}
+        </ul>
+      </div>
+      <div class="col-lg-4">
+        <h6 class="footer-heading">Подписка на новинки</h6>
+        <p class="text-muted small">Будьте первыми — узнавайте о новых коллекциях и скидках.</p>
+        <form method="POST" action="{% url 'core:subscribe' %}" class="mt-2">
+          {% csrf_token %}
+          <div class="input-group">
+            <input type="email" name="email" class="form-control" placeholder="Ваш email">
+            <button class="btn btn-dark" type="submit">Подписаться</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <hr class="footer-divider">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center py-3 gap-2">
+      <p class="text-muted small mb-0">&copy; 2025 Timoda. Все права защищены.</p>
+      <p class="text-muted small mb-0">Ташкент, Узбекистан</p>
+    </div>
+  </div>
+</footer>

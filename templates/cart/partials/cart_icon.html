@@ -1,0 +1,8 @@
+<span id="cart-icon-wrap">
+  <a href="{% url 'cart:detail' %}" class="icon-btn cart-icon-btn position-relative" title="Корзина">
+    <i class="bi bi-bag"></i>
+    {% if cart|length > 0 %}
+    <span class="cart-badge" id="cart-count">{{ cart|length }}</span>
+    {% endif %}
+  </a>
+</span>

@@ -1,0 +1,97 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Заказ #{{ order.order_number }}{% endblock %}
+{% block page_title %}Заказ #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Items -->
+    <div class="dash-card mb-4">
+      <h6 class="fw-semibold mb-3">Позиции заказа</h6>
+      <table class="table dash-table mb-0">
+        <thead><tr><th>Товар</th><th>Размер/Цвет</th><th>Кол-во</th><th>Цена</th><th>Итого</th></tr></thead>
+        <tbody>
+          {% for item in order.items.all %}
+          <tr>
+            <td class="fw-semibold">{{ item.product_name }}</td>
+            <td class="text-muted small">{{ item.size_name }} / {{ item.color_name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.price|floatformat:0 }}</td>
+            <td class="fw-semibold">{{ item.total_price|floatformat:0 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="table-light">
+            <td colspan="4" class="text-end fw-bold">Итого:</td>
+            <td class="fw-bold">{{ order.total|floatformat:0 }} сум</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Payments -->
+    {% if order.payments.exists %}
+    <div class="dash-card">
+      <h6 class="fw-semibold mb-3">Платежи</h6>
+      {% for payment in order.payments.all %}
+      <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+        <div>
+          <span class="badge bg-dark me-2">{{ payment.get_provider_display }}</span>
+          <span class="text-muted small">{{ payment.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="fw-semibold">{{ payment.amount_sum|floatformat:0 }} сум</span>
+          <span class="badge-status status-{{ payment.status }}">{{ payment.get_status_display }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Status change -->
+    <div class="dash-card mb-4">
+      <h6 class="fw-semibold mb-3">Статус заказа</h6>
+      <div class="mb-3">
+        <span class="badge-status status-{{ order.status }} fs-6">{{ order.get_status_display }}</span>
+      </div>
+      <form method="POST">
+        {% csrf_token %}
+        <select name="status" class="form-select form-select-sm mb-2">
+          {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-dark btn-sm w-100">Изменить статус</button>
+      </form>
+    </div>
+
+    <!-- Customer info -->
+    <div class="dash-card mb-4">
+      <h6 class="fw-semibold mb-3">Покупатель</h6>
+      <p class="mb-1 fw-semibold">{{ order.full_name }}</p>
+      <p class="mb-1 small text-muted"><i class="bi bi-telephone me-1"></i>{{ order.phone }}</p>
+      <p class="mb-1 small text-muted"><i class="bi bi-envelope me-1"></i>{{ order.email }}</p>
+    </div>
+
+    <!-- Shipping -->
+    <div class="dash-card">
+      <h6 class="fw-semibold mb-3">Адрес доставки</h6>
+      <p class="mb-1 small">{{ order.shipping_address }}</p>
+      <p class="mb-1 small">{{ order.city }}{% if order.postal_code %}, {{ order.postal_code }}{% endif %}</p>
+      <p class="mb-0 small">{{ order.country }}</p>
+      {% if order.notes %}
+      <hr><p class="small text-muted mb-0"><i class="bi bi-chat-dots me-1"></i>{{ order.notes }}</p>
+      {% endif %}
+      <hr>
+      <p class="small text-muted mb-0">Создан: {{ order.created_at|date:"d.m.Y H:i" }}</p>
+    </div>
+  </div>
+</div>
+
+<a href="{% url 'dashboard:order_list' %}" class="btn btn-outline-secondary btn-sm mt-3">
+  <i class="bi bi-arrow-left me-1"></i>Назад к заказам
+</a>
+{% endblock %}

@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} — Timoda{% endblock %}
+{% block meta_description %}{{ product.meta_description|default:product.description|truncatechars:160 }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Главная</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'products:list' %}">Каталог</a></li>
+      {% if product.category %}
+      <li class="breadcrumb-item"><a href="{% url 'products:list' %}?category={{ product.category.slug }}">{{ product.category.name }}</a></li>
+      {% endif %}
+      <li class="breadcrumb-item active">{{ product.name }}</li>
+    </ol>
+  </nav>
+
+  <div class="row g-5">
+    <!-- Images -->
+    <div class="col-lg-7">
+      <div class="product-gallery">
+        <!-- Main image -->
+        <div class="product-gallery-main mb-3">
+          {% if product.primary_image %}
+          <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}"
+               class="product-gallery-main-img" id="mainImage">
+          {% else %}
+          <div class="product-gallery-placeholder">
+            <i class="bi bi-image text-muted fs-1"></i>
+          </div>
+          {% endif %}
+        </div>
+        <!-- Thumbnails — always visible, scrollable -->
+        {% if product.images.count > 1 %}
+        <div class="product-gallery-thumbs" id="galleryThumbs">
+          {% for img in product.images.all %}
+          <div class="gallery-thumb {% if img.is_primary %}active{% endif %}"
+               data-color="{{ img.color_id|default:'' }}"
+               onclick="selectGalleryThumb(this, '{{ img.image.url }}')">
+            <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:product.name }}">
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Product Info -->
+    <div class="col-lg-5">
+      <div class="product-detail-info">
+        {% if product.category %}
+        <p class="product-detail-category">{{ product.category.name }}</p>
+        {% endif %}
+
+        <h1 class="product-detail-name">{{ product.name }}</h1>
+
+        <!-- Rating -->
+        {% if product.avg_rating > 0 %}
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <div class="stars-display">
+            {% for i in "12345" %}
+            <i class="bi bi-star{% if forloop.counter <= product.avg_rating %}-fill{% endif %} text-warning"></i>
+            {% endfor %}
+          </div>
+          <span class="text-muted small">{{ product.avg_rating }} ({{ product.reviews_count }} отзывов)</span>
+        </div>
+        {% endif %}
+
+        <!-- Price -->
+        <div class="product-detail-price mb-4">
+          {% if product.sale_price %}
+          <span class="price-sale-lg">{{ product.sale_price|floatformat:0 }} сум</span>
+          <span class="price-original-lg">{{ product.price|floatformat:0 }} сум</span>
+          <span class="badge bg-danger ms-2">-{{ product.discount_percent }}%</span>
+          {% else %}
+          <span class="price-current-lg">{{ product.price|floatformat:0 }} сум</span>
+          {% endif %}
+        </div>
+
+        <!-- Add to cart form -->
+        <form method="POST" id="add-to-cart-form"
+              hx-post=""
+              hx-target="#cart-icon-wrap"
+              hx-swap="outerHTML">
+          {% csrf_token %}
+
+          <!-- Color selection -->
+          {% if colors %}
+          <div class="variant-selector mb-3">
+            <label class="variant-label">Цвет: <span id="selected-color" class="fw-semibold"></span></label>
+            <div class="color-swatches mt-2">
+              {% for color in colors %}
+              <label class="color-swatch-label" title="{{ color.name }}">
+                <input type="radio" name="color_id" value="{{ color.id }}" class="d-none color-radio"
+                       {% if forloop.first %}checked{% endif %}
+                       onchange="document.getElementById('selected-color').textContent='{{ color.name }}'">
+                <span class="color-swatch" style="background-color: {{ color.hex_code }};"
+                      data-bs-toggle="tooltip" title="{{ color.name }}"></span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Size selection -->
+          {% if sizes %}
+          <div class="variant-selector mb-3">
+            <label class="variant-label">Размер: <span id="selected-size" class="fw-semibold"></span></label>
+            <div class="size-buttons mt-2">
+              {% for size in sizes %}
+              <label class="size-btn-label">
+                <input type="radio" name="size_id" value="{{ size.id }}" class="d-none size-radio"
+                       {% if forloop.first %}checked{% endif %}
+                       onchange="document.getElementById('selected-size').textContent='{{ size.name }}'">
+                <span class="size-btn">{{ size.name }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Stock info -->
+          <div id="stock-info" class="mb-3"></div>
+
+          <!-- Quantity -->
+          <div class="quantity-selector mb-4">
+            <label class="variant-label d-block mb-2">Количество</label>
+            <div class="quantity-control d-inline-flex align-items-center">
+              <button type="button" class="qty-btn" onclick="changeQty(-1)">−</button>
+              <input type="number" name="quantity" id="quantity" value="1" min="1" max="99" class="qty-input">
+              <button type="button" class="qty-btn" onclick="changeQty(1)">+</button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-add-to-cart w-100 mb-3" id="add-cart-btn">
+            <i class="bi bi-bag-plus me-2"></i>Добавить в корзину
+          </button>
+        </form>
+
+        <!-- Product details -->
+        <div class="product-meta mt-4">
+          {% if product.composition %}
+          <div class="product-meta-item">
+            <span class="meta-label">Состав:</span>
+            <span>{{ product.composition }}</span>
+          </div>
+          {% endif %}
+          {% if product.care_instructions %}
+          <div class="product-meta-item">
+            <span class="meta-label">Уход:</span>
+            <span>{{ product.care_instructions }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Accordion: Description -->
+        <div class="accordion product-accordion mt-4" id="productAccordion">
+          <div class="accordion-item border-0">
+            <h2 class="accordion-header">
+              <button class="accordion-button px-0" type="button" data-bs-toggle="collapse" data-bs-target="#descCollapse">
+                Описание
+              </button>
+            </h2>
+            <div id="descCollapse" class="accordion-collapse collapse show">
+              <div class="accordion-body px-0 text-muted">{{ product.description }}</div>
+            </div>
+          </div>
+          {% if product.care_instructions %}
+          <div class="accordion-item border-0">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed px-0" type="button" data-bs-toggle="collapse" data-bs-target="#careCollapse">
+                Уход за изделием
+              </button>
+            </h2>
+            <div id="careCollapse" class="accordion-collapse collapse">
+              <div class="accordion-body px-0 text-muted">{{ product.care_instructions }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reviews -->
+  <section class="product-reviews mt-5 pt-4 border-top">
+    <h2 class="section-title mb-4">Отзывы {% if product.reviews_count > 0 %}<small class="text-muted fs-6">({{ product.reviews_count }})</small>{% endif %}</h2>
+    <div class="row g-4">
+      <div class="col-lg-8">
+        {% if reviews %}
+        {% for review in reviews %}
+        <div class="review-item mb-4">
+          <div class="d-flex justify-content-between">
+            <div>
+              <strong>{{ review.user.get_full_name }}</strong>
+              <div class="stars-sm mt-1">
+                {% for i in "12345" %}
+                <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %} text-warning small"></i>
+                {% endfor %}
+              </div>
+            </div>
+            <small class="text-muted">{{ review.created_at|date:"d.m.Y" }}</small>
+          </div>
+          {% if review.title %}<p class="fw-semibold mt-2 mb-1">{{ review.title }}</p>{% endif %}
+          <p class="text-muted mb-0">{{ review.comment }}</p>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted">Пока нет отзывов. Будьте первым!</p>
+        {% endif %}
+      </div>
+      {% if review_form %}
+      <div class="col-lg-4">
+        <div class="review-form-card">
+          <h5 class="mb-3">Оставить отзыв</h5>
+          <form method="POST" action="{% url 'products:add_review' product.slug %}"
+                hx-post="{% url 'products:add_review' product.slug %}"
+                hx-target=".review-form-card"
+                hx-swap="innerHTML">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label small">Оценка</label>
+              <div class="star-rating-input">
+                {% for i in "54321" %}
+                <input type="radio" name="rating" id="star{{ i }}" value="{{ i }}" class="d-none">
+                <label for="star{{ i }}" class="star-label"><i class="bi bi-star-fill"></i></label>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="mb-3">
+              <input type="text" name="title" class="form-control" placeholder="Заголовок (необязательно)">
+            </div>
+            <div class="mb-3">
+              <textarea name="comment" rows="4" class="form-control" placeholder="Ваш отзыв..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-dark w-100">Отправить</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Related Products -->
+  {% if related %}
+  <section class="related-products mt-5 pt-4 border-top">
+    <h2 class="section-title mb-4">Похожие товары</h2>
+    <div class="row g-3">
+      {% for product in related %}
+      {% include 'products/partials/product_card.html' with product=product %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const VARIANT_MAP = {{ variant_map|safe }};
+const COLOR_IMAGE_MAP = {{ color_image_map|safe }};
+const STOCK_MAP = {{ stock_map|safe }};
+const ADD_CART_BASE = '/cart/add/';
+
+function changeQty(delta) {
+  const input = document.getElementById('quantity');
+  const val = parseInt(input.value) + delta;
+  if (val >= 1 && val <= 99) input.value = val;
+}
+
+function setMainImage(url) {
+  const mainImg = document.getElementById('mainImage');
+  if (!mainImg || mainImg.src.endsWith(url)) return;
+  mainImg.style.opacity = '0';
+  setTimeout(() => { mainImg.src = url; mainImg.style.opacity = '1'; }, 150);
+}
+
+function selectGalleryThumb(thumbEl, url) {
+  setMainImage(url);
+  document.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
+  thumbEl.classList.add('active');
+}
+
+function switchGalleryToColor(colorId) {
+  const colorStr = String(colorId);
+  const thumbs = Array.from(document.querySelectorAll('.gallery-thumb'));
+  if (!thumbs.length) return;
+
+  // Remove previous color-match highlights
+  thumbs.forEach(t => t.classList.remove('color-match'));
+
+  // Find thumbs for this color
+  const colorThumbs = thumbs.filter(t => t.dataset.color === colorStr);
+  if (!colorThumbs.length) return; // no tagged images — leave gallery as-is
+
+  // Highlight matched thumbs and scroll to the first
+  colorThumbs.forEach(t => t.classList.add('color-match'));
+  colorThumbs[0].classList.add('active');
+  thumbs.filter(t => !colorThumbs.includes(t)).forEach(t => t.classList.remove('active'));
+  colorThumbs[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+
+  // Switch main image
+  const firstImg = colorThumbs[0].querySelector('img');
+  if (firstImg) setMainImage(firstImg.src);
+}
+
+function getVariantId() {
+  const sizeId = parseInt(document.querySelector('.size-radio:checked')?.value) || null;
+  const colorId = parseInt(document.querySelector('.color-radio:checked')?.value) || null;
+  if (sizeId && colorId && VARIANT_MAP[sizeId]?.[colorId]) return VARIANT_MAP[sizeId][colorId];
+  if (sizeId && VARIANT_MAP[sizeId]) return Object.values(VARIANT_MAP[sizeId])[0];
+  if (Object.keys(VARIANT_MAP).length) return Object.values(Object.values(VARIANT_MAP)[0])[0];
+  return null;
+}
+
+function updateStockInfo() {
+  const el = document.getElementById('stock-info');
+  if (!el) return;
+  const variantId = getVariantId();
+  if (variantId === null || STOCK_MAP[variantId] === undefined) { el.innerHTML = ''; return; }
+  const stock = STOCK_MAP[variantId];
+  if (stock === 0) {
+    el.innerHTML = '<span class="stock-badge stock-none"><i class="bi bi-x-circle me-1"></i>Нет в наличии</span>';
+  } else if (stock <= 5) {
+    el.innerHTML = `<span class="stock-badge stock-low"><i class="bi bi-exclamation-circle me-1"></i>Осталось: ${stock} шт. — торопитесь!</span>`;
+  } else {
+    el.innerHTML = `<span class="stock-badge stock-ok"><i class="bi bi-check-circle me-1"></i>В наличии: ${stock} шт.</span>`;
+  }
+}
+
+function updateCartFormAction() {
+  const btn = document.getElementById('add-cart-btn');
+  const form = document.getElementById('add-to-cart-form');
+  if (!form) return;
+  const variantId = getVariantId();
+
+  if (variantId) {
+    const url = `${ADD_CART_BASE}${variantId}/`;
+    form.action = url;
+    form.setAttribute('hx-post', url);
+    btn.disabled = STOCK_MAP[variantId] === 0;
+    btn.innerHTML = STOCK_MAP[variantId] === 0
+      ? 'Нет в наличии'
+      : '<i class="bi bi-bag-plus me-2"></i>Добавить в корзину';
+  } else {
+    btn.disabled = true;
+    btn.innerHTML = 'Нет в наличии';
+  }
+  updateStockInfo();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Set initial labels
+  const firstColor = document.querySelector('.color-radio:checked');
+  if (firstColor) {
+    const colorLabel = document.getElementById('selected-color');
+    if (colorLabel) colorLabel.textContent = firstColor.closest('label').querySelector('.color-swatch')?.title || '';
+    if (Object.keys(COLOR_IMAGE_MAP).length > 0) switchGalleryToColor(firstColor.value);
+  }
+  const firstSize = document.querySelector('.size-radio:checked');
+  if (firstSize) {
+    const sizeLabel = document.getElementById('selected-size');
+    if (sizeLabel) sizeLabel.textContent = firstSize.closest('label').querySelector('.size-btn')?.textContent || '';
+  }
+
+  document.querySelectorAll('.color-radio').forEach(r => {
+    r.addEventListener('change', () => {
+      const colorLabel = document.getElementById('selected-color');
+      if (colorLabel) colorLabel.textContent = r.closest('label').querySelector('.color-swatch')?.title || '';
+      if (Object.keys(COLOR_IMAGE_MAP).length > 0) switchGalleryToColor(r.value);
+      updateCartFormAction();
+    });
+  });
+
+  document.querySelectorAll('.size-radio').forEach(r => {
+    r.addEventListener('change', updateCartFormAction);
+  });
+
+  updateCartFormAction();
+
+  // ── Image zoom (loupe) ──────────────────────────────────────
+  const galleryMain = document.querySelector('.product-gallery-main');
+  const mainImg = document.getElementById('mainImage');
+  if (galleryMain && mainImg) {
+    galleryMain.addEventListener('mousemove', e => {
+      const rect = galleryMain.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+      const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+      mainImg.style.transformOrigin = `${x}% ${y}%`;
+      galleryMain.classList.add('zooming');
+    });
+    galleryMain.addEventListener('mouseleave', () => {
+      galleryMain.classList.remove('zooming');
+      mainImg.style.transformOrigin = '50% 50%';
+    });
+  }
+});
+</script>
+{% endblock %}

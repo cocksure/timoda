@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Мои заказы — Timoda{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="page-title mb-4">Мои заказы</h1>
+
+  {% if orders %}
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Номер</th>
+          <th>Дата</th>
+          <th>Товары</th>
+          <th>Сумма</th>
+          <th>Статус</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td class="fw-semibold">#{{ order.order_number }}</td>
+          <td class="text-muted small">{{ order.created_at|date:"d.m.Y" }}</td>
+          <td class="small">{{ order.items.count }} поз.</td>
+          <td class="fw-semibold">{{ order.total|floatformat:0 }} сум</td>
+          <td>
+            <span class="badge-status status-{{ order.status }}">{{ order.get_status_display }}</span>
+          </td>
+          <td>
+            <a href="{% url 'orders:detail' order.order_number %}" class="btn btn-sm btn-outline-dark">Детали</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-bag fs-1 text-muted"></i>
+    <p class="text-muted mt-3">У вас пока нет заказов</p>
+    <a href="{% url 'products:list' %}" class="btn btn-dark">Начать покупки</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

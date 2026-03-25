@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Заказ #{{ order.order_number }} — Timoda{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title mb-0">Заказ #{{ order.order_number }}</h1>
+    <span class="badge-status status-{{ order.status }} fs-6">{{ order.get_status_display }}</span>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="order-card mb-4">
+        <h5 class="mb-3">Позиции заказа</h5>
+        {% for item in order.items.all %}
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom gap-3">
+          <div class="d-flex align-items-center gap-3 flex-grow-1">
+            {% if item.primary_image %}
+              <a href="{% if item.product_slug %}{% url 'products:detail' item.product_slug %}{% else %}#{% endif %}">
+                <img src="{{ item.primary_image.image.url }}" alt="{{ item.product_name }}"
+                     style="width:56px;height:70px;object-fit:cover;border-radius:6px;flex-shrink:0;">
+              </a>
+            {% else %}
+              <div style="width:56px;height:70px;border-radius:6px;background:#f4f4f4;flex-shrink:0;"></div>
+            {% endif %}
+            <div>
+              {% if item.product_slug %}
+                <a href="{% url 'products:detail' item.product_slug %}" class="text-dark text-decoration-none fw-semibold">{{ item.product_name }}</a>
+              {% else %}
+                <p class="mb-0 fw-semibold">{{ item.product_name }}</p>
+              {% endif %}
+              <p class="mb-0 small text-muted">{{ item.size_name }} / {{ item.color_name }} × {{ item.quantity }}</p>
+            </div>
+          </div>
+          <span class="fw-semibold text-nowrap">{{ item.total_price|floatformat:0 }} сум</span>
+        </div>
+        {% endfor %}
+        <div class="d-flex justify-content-between pt-3 fw-bold">
+          <span>Итого</span>
+          <span>{{ order.total|floatformat:0 }} сум</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="order-card">
+        <h5 class="mb-3">Информация о доставке</h5>
+        <p class="mb-1"><strong>{{ order.full_name }}</strong></p>
+        <p class="mb-1 text-muted small">{{ order.phone }}</p>
+        <p class="mb-1 text-muted small">{{ order.email }}</p>
+        <hr>
+        <p class="mb-1 text-muted small">{{ order.shipping_address }}</p>
+        <p class="mb-0 text-muted small">{{ order.city }}{% if order.postal_code %}, {{ order.postal_code }}{% endif %}, {{ order.country }}</p>
+        {% if order.notes %}<hr><p class="text-muted small"><i class="bi bi-chat-dots me-1"></i>{{ order.notes }}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <a href="{% url 'orders:list' %}" class="btn btn-outline-dark mt-3"><i class="bi bi-arrow-left me-1"></i>Назад к заказам</a>
+</div>
+{% endblock %}

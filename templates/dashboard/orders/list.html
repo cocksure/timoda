@@ -1,0 +1,56 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Заказы{% endblock %}
+{% block page_title %}Заказы{% endblock %}
+
+{% block content %}
+<!-- Filter tabs -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <a href="{% url 'dashboard:order_list' %}" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">Все</a>
+  {% for value, label in status_choices %}
+  <a href="?status={{ value }}" class="btn btn-sm {% if status_filter == value %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+    {{ label }}
+    {% if value == 'pending' and stats %}<span class="badge bg-danger ms-1">!</span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="dash-card p-0">
+  <div class="table-responsive">
+    <table class="table dash-table mb-0">
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Покупатель</th>
+          <th>Город</th>
+          <th>Позиций</th>
+          <th>Сумма</th>
+          <th>Статус</th>
+          <th>Дата</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td class="fw-semibold">#{{ order.order_number }}</td>
+          <td>
+            <p class="mb-0">{{ order.full_name }}</p>
+            <p class="mb-0 text-muted small">{{ order.phone }}</p>
+          </td>
+          <td class="text-muted small">{{ order.city }}</td>
+          <td class="text-muted small">{{ order.items.count }}</td>
+          <td class="fw-semibold">{{ order.total|floatformat:0 }}</td>
+          <td><span class="badge-status status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+          <td class="text-muted small">{{ order.created_at|date:"d.m.Y H:i" }}</td>
+          <td>
+            <a href="{% url 'dashboard:order_detail' order.pk %}" class="btn btn-sm btn-outline-dark">Открыть</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-5">Заказов нет</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

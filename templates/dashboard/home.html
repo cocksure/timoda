@@ -1,0 +1,116 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Дашборд{% endblock %}
+{% block page_title %}Дашборд{% endblock %}
+
+{% block content %}
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <p class="stat-label">Заказы сегодня</p>
+          <p class="stat-value">{{ stats.orders_today }}</p>
+        </div>
+        <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-bag"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <p class="stat-label">Заказы за 30 дней</p>
+          <p class="stat-value">{{ stats.orders_month }}</p>
+        </div>
+        <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-graph-up"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <p class="stat-label">Выручка за 30 дней</p>
+          <p class="stat-value" style="font-size:1.2rem;">{{ stats.revenue_month|floatformat:0 }}</p>
+          <p class="stat-label">сум</p>
+        </div>
+        <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-cash-coin"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <p class="stat-label">Ожидают обработки</p>
+          <p class="stat-value text-danger">{{ stats.pending_orders }}</p>
+        </div>
+        <div class="stat-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-clock-history"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stock alerts -->
+{% if stats.low_stock or stats.out_of_stock %}
+<div class="row g-3 mb-4">
+  {% if stats.out_of_stock %}
+  <div class="col-md-6">
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-0">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span><strong>{{ stats.out_of_stock }}</strong> вариантов нет в наличии</span>
+      <a href="{% url 'dashboard:product_list' %}" class="ms-auto btn btn-sm btn-outline-danger">Посмотреть</a>
+    </div>
+  </div>
+  {% endif %}
+  {% if stats.low_stock %}
+  <div class="col-md-6">
+    <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-0">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      <span><strong>{{ stats.low_stock }}</strong> вариантов заканчивается (≤5)</span>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Recent orders -->
+<div class="dash-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0 fw-semibold">Последние заказы</h6>
+    <a href="{% url 'dashboard:order_list' %}" class="btn btn-sm btn-outline-secondary">Все заказы</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table dash-table mb-0">
+      <thead>
+        <tr>
+          <th>№ Заказа</th>
+          <th>Покупатель</th>
+          <th>Товары</th>
+          <th>Сумма</th>
+          <th>Статус</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in recent_orders %}
+        <tr>
+          <td class="fw-semibold">#{{ order.order_number }}</td>
+          <td>
+            <p class="mb-0">{{ order.full_name }}</p>
+            <p class="mb-0 text-muted small">{{ order.phone }}</p>
+          </td>
+          <td class="text-muted small">{{ order.items.count }} поз.</td>
+          <td class="fw-semibold">{{ order.total|floatformat:0 }} сум</td>
+          <td><span class="badge-status status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+          <td><a href="{% url 'dashboard:order_detail' order.pk %}" class="btn btn-sm btn-outline-dark">Открыть</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Заказов пока нет</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

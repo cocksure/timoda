@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Подтверждение номера — Timoda{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-sm-10 col-md-7 col-lg-5">
+      <div class="auth-card">
+        <!-- Steps indicator -->
+        <div class="otp-steps mb-4">
+          <div class="otp-step done"><span><i class="bi bi-check"></i></span><small>Номер</small></div>
+          <div class="otp-step-line active"></div>
+          <div class="otp-step active"><span>2</span><small>Код</small></div>
+          <div class="otp-step-line"></div>
+          <div class="otp-step"><span>3</span><small>Данные</small></div>
+        </div>
+
+        <div class="text-center mb-4">
+          <h2 class="auth-title">Введите код</h2>
+          <p class="text-muted">SMS с кодом отправлен на<br><strong>{{ phone }}</strong></p>
+        </div>
+
+        <form method="POST">
+          {% csrf_token %}
+          {{ form|crispy }}
+          <button type="submit" class="btn btn-dark w-100 btn-lg mt-2">
+            Подтвердить <i class="bi bi-check-lg ms-1"></i>
+          </button>
+        </form>
+
+        <div class="text-center mt-3">
+          <p class="text-muted small">Не пришёл код?
+            <a href="{% url 'accounts:register_resend' %}">Отправить повторно</a>
+          </p>
+          <a href="{% url 'accounts:register' %}" class="text-muted small">
+            <i class="bi bi-arrow-left me-1"></i>Изменить номер
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Auto-focus and auto-submit when 6 digits entered
+const otpInput = document.querySelector('.otp-input');
+if (otpInput) {
+  otpInput.focus();
+  otpInput.addEventListener('input', function() {
+    if (this.value.length === 6) {
+      this.closest('form').submit();
+    }
+  });
+}
+
+// Countdown timer for resend
+let seconds = 60;
+const resendLink = document.querySelector('a[href*="resend"]');
+if (resendLink) {
+  const original = resendLink.textContent;
+  resendLink.style.pointerEvents = 'none';
+  resendLink.style.opacity = '0.5';
+  const interval = setInterval(() => {
+    seconds--;
+    resendLink.textContent = `Повторно через ${seconds}с`;
+    if (seconds <= 0) {
+      clearInterval(interval);
+      resendLink.textContent = original;
+      resendLink.style.pointerEvents = '';
+      resendLink.style.opacity = '';
+    }
+  }, 1000);
+}
+</script>
+{% endblock %}
+{% endblock %}

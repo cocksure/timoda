@@ -1,0 +1,253 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Left: Product form -->
+  <div class="col-lg-8">
+    <div class="dash-card mb-4">
+      <h6 class="fw-semibold mb-3">Основная информация</h6>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="dash-form-label">Название *</label>
+            {{ form.name }}
+          </div>
+          <div class="col-md-6">
+            <label class="dash-form-label">Категория</label>
+            {{ form.category }}
+          </div>
+          <div class="col-md-6">
+            <label class="dash-form-label">Slug (URL)</label>
+            {{ form.slug }}
+          </div>
+          <div class="col-12">
+            <label class="dash-form-label">Описание *</label>
+            {{ form.description }}
+          </div>
+          <div class="col-md-6">
+            <label class="dash-form-label">Состав</label>
+            {{ form.composition }}
+          </div>
+          <div class="col-md-6">
+            <label class="dash-form-label">Уход за изделием</label>
+            {{ form.care_instructions }}
+          </div>
+          <div class="col-md-6">
+            <label class="dash-form-label">Цена (сум) *</label>
+            {{ form.price }}
+          </div>
+          <div class="col-md-6">
+            <label class="dash-form-label">Цена со скидкой (сум)</label>
+            {{ form.sale_price }}
+          </div>
+          <div class="col-12">
+            <div class="d-flex gap-4 flex-wrap">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label">Активен (виден на сайте)</label>
+              </div>
+              <div class="form-check">
+                {{ form.is_new }}
+                <label class="form-check-label">Новинка</label>
+              </div>
+              <div class="form-check">
+                {{ form.is_featured }}
+                <label class="form-check-label">Рекомендуемый</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% if form.errors %}
+        <div class="alert alert-danger mt-3 py-2">
+          {% for field, errors in form.errors.items %}
+          {% for error in errors %}<p class="mb-0 small">{{ field }}: {{ error }}</p>{% endfor %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="mt-3 d-flex gap-2">
+          <button type="submit" name="save_product" class="btn btn-dark">Сохранить</button>
+          <a href="{% url 'dashboard:product_list' %}" class="btn btn-outline-secondary">Отмена</a>
+          {% if product %}
+          <a href="{% url 'products:detail' product.slug %}" target="_blank" class="btn btn-outline-secondary ms-auto">
+            <i class="bi bi-eye me-1"></i>На сайте
+          </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    {% if product %}
+    <!-- Variants -->
+    <div class="dash-card mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-semibold mb-0">Варианты (размер / цвет / остаток)</h6>
+      </div>
+
+      {% if product.variants.exists %}
+      <div class="table-responsive mb-3">
+        <table class="table dash-table table-sm mb-0">
+          <thead>
+            <tr><th>Размер</th><th>Цвет</th><th>Артикул</th><th>Остаток</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for v in product.variants.select_related %}
+            <tr>
+              <td>{{ v.size }}</td>
+              <td>
+                <span class="d-inline-block rounded-circle me-1" style="width:12px;height:12px;background:{{ v.color.hex_code }};border:1px solid #ddd;"></span>
+                {{ v.color }}
+              </td>
+              <td class="text-muted small">{{ v.sku }}</td>
+              <td>
+                <form method="POST" action="{% url 'dashboard:variant_stock' v.pk %}" class="d-flex align-items-center gap-1">
+                  {% csrf_token %}
+                  <input type="number" name="stock" value="{{ v.stock }}" min="0"
+                         class="form-control form-control-sm" style="width:70px">
+                  <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check-lg"></i></button>
+                </form>
+              </td>
+              <td>
+                <form method="POST" action="{% url 'dashboard:variant_delete' v.pk %}"
+                      onsubmit="return confirm('Удалить вариант?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      <!-- Add variant -->
+      <form method="POST" class="row g-2 align-items-end">
+        {% csrf_token %}
+        <div class="col-auto">
+          <label class="dash-form-label">Размер</label>
+          {{ variant_form.size }}
+        </div>
+        <div class="col-auto">
+          <label class="dash-form-label">Цвет</label>
+          {{ variant_form.color }}
+        </div>
+        <div class="col-auto">
+          <label class="dash-form-label">Остаток</label>
+          {{ variant_form.stock }}
+        </div>
+        <div class="col">
+          <label class="dash-form-label">Артикул</label>
+          {{ variant_form.sku }}
+        </div>
+        <div class="col-auto">
+          <button type="submit" name="add_variant" class="btn btn-outline-dark btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Добавить
+          </button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Images -->
+  <div class="col-lg-4">
+    {% if product %}
+    <div class="dash-card mb-4">
+      <h6 class="fw-semibold mb-3">Фотографии</h6>
+      <div class="row g-2 mb-3">
+        {% for img in product.images.all %}
+        <div class="col-6 position-relative">
+          <img src="{{ img.image.url }}" class="w-100 rounded" style="aspect-ratio:3/4;object-fit:cover;">
+          <div class="position-absolute top-0 start-0 end-0 p-1 d-flex gap-1 align-items-center">
+            {% if not img.is_primary %}
+            <form method="POST" action="{% url 'dashboard:image_primary' img.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-light py-0 px-1" title="Сделать главным">
+                <i class="bi bi-star" style="font-size:11px;"></i>
+              </button>
+            </form>
+            {% else %}
+            <span class="badge bg-warning text-dark" style="font-size:10px;">Главное</span>
+            {% endif %}
+            {% if img.color %}
+            <span class="d-inline-flex align-items-center gap-1 badge bg-light text-dark border" style="font-size:9px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:{{ img.color.hex_code }};display:inline-block;"></span>
+              {{ img.color.name }}
+            </span>
+            {% endif %}
+            <form method="POST" action="{% url 'dashboard:image_delete' img.pk %}"
+                  onsubmit="return confirm('Удалить фото?')" class="ms-auto">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger py-0 px-1">
+                <i class="bi bi-x" style="font-size:13px;"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center text-muted py-3 small">Фотографий нет</div>
+        {% endfor %}
+      </div>
+
+      <!-- Upload -->
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label class="dash-form-label">Загрузить фото</label>
+        <input type="file" name="image" accept="image/*" class="form-control form-control-sm mb-2" required>
+        {% if colors %}
+        <select name="image_color" class="form-select form-select-sm mb-2">
+          <option value="">— Без привязки к цвету —</option>
+          {% for color in colors %}
+          <option value="{{ color.id }}">
+            {{ color.name }}
+          </option>
+          {% endfor %}
+        </select>
+        {% endif %}
+        <button type="submit" name="upload_image" class="btn btn-outline-dark btn-sm w-100">
+          <i class="bi bi-upload me-1"></i>Загрузить
+        </button>
+        <p class="text-muted small mt-1 mb-0">Автоматически конвертируется в WebP</p>
+      </form>
+    </div>
+
+    <!-- Quick info -->
+    <div class="dash-card">
+      <h6 class="fw-semibold mb-3">Информация</h6>
+      <p class="small text-muted mb-1">Создан: {{ product.created_at|date:"d.m.Y H:i" }}</p>
+      <p class="small text-muted mb-1">Обновлён: {{ product.updated_at|date:"d.m.Y H:i" }}</p>
+      <p class="small text-muted mb-3">Slug: <code>{{ product.slug }}</code></p>
+      <form method="POST" action="{% url 'dashboard:product_delete' product.pk %}"
+            onsubmit="return confirm('Удалить товар «{{ product.name }}»? Это необратимо.')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+          <i class="bi bi-trash me-1"></i>Удалить товар
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-generate slug from name
+const nameInput = document.querySelector('[name="name"]');
+const slugInput = document.querySelector('[name="slug"]');
+if (nameInput && slugInput && !slugInput.value) {
+  nameInput.addEventListener('input', () => {
+    slugInput.value = nameInput.value
+      .toLowerCase()
+      .replace(/[^a-zа-яё0-9\s-]/gi, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[а-яё]/g, c => ({'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'j','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'}[c] || c));
+  });
+}
+</script>
+{% endblock %}
