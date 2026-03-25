@@ -109,21 +109,29 @@ LOGOUT_REDIRECT_URL = '/'
 CART_SESSION_ID = 'cart'
 
 # ── Redis / Cache ─────────────────────────────────────────────
-REDIS_URL = env('REDIS_URL', default='redis://127.0.0.1:6379/0')
+REDIS_URL = env('REDIS_URL', default='')
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'TIMEOUT': 60 * 15,  # 15 минут по умолчанию
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'TIMEOUT': 60 * 15,
+        }
     }
-}
-
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+else:
+    # Fallback: без Redis (PythonAnywhere free, локалка без Redis)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
@@ -172,3 +180,20 @@ ESKIZ_CLIENT_ID = env('ESKIZ_CLIENT_ID', default='')
 # OTP settings
 OTP_EXPIRY_MINUTES = 5
 OTP_MAX_ATTEMPTS = 3
+
+# ── CSRF ──────────────────────────────────────────────────────
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+])
+
+# ── Production security ───────────────────────────────────────
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
