@@ -21,7 +21,7 @@ ENV/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/
+# media/ — временно включена для тестового деплоя, потом вернуть
 staticfiles/
 
 # Environment variables — НИКОГДА не коммитить!
