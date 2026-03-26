@@ -108,10 +108,14 @@
       </div>
       <a href="{% url 'products:list' %}?is_new=true" class="btn-link-arrow">Все новинки <i class="bi bi-arrow-right"></i></a>
     </div>
-    <div class="row g-3">
-      {% for product in new_arrivals %}
-      {% include 'products/partials/product_card.html' with product=product %}
-      {% endfor %}
+    <div class="products-rail-wrap">
+      <button class="rail-btn rail-btn-prev" onclick="railScroll(this,-1)" type="button"><i class="bi bi-chevron-left"></i></button>
+      <div class="products-rail">
+        {% for product in new_arrivals %}
+        {% include 'products/partials/product_card.html' with product=product rail=True %}
+        {% endfor %}
+      </div>
+      <button class="rail-btn rail-btn-next" onclick="railScroll(this,1)" type="button"><i class="bi bi-chevron-right"></i></button>
     </div>
   </div>
 </section>
@@ -164,10 +168,14 @@
       </div>
       <a href="{% url 'products:list' %}?is_featured=true" class="btn-link-arrow">Смотреть все <i class="bi bi-arrow-right"></i></a>
     </div>
-    <div class="row g-3">
-      {% for product in featured %}
-      {% include 'products/partials/product_card.html' with product=product %}
-      {% endfor %}
+    <div class="products-rail-wrap">
+      <button class="rail-btn rail-btn-prev" onclick="railScroll(this,-1)" type="button"><i class="bi bi-chevron-left"></i></button>
+      <div class="products-rail">
+        {% for product in featured %}
+        {% include 'products/partials/product_card.html' with product=product rail=True %}
+        {% endfor %}
+      </div>
+      <button class="rail-btn rail-btn-next" onclick="railScroll(this,1)" type="button"><i class="bi bi-chevron-right"></i></button>
     </div>
   </div>
 </section>
@@ -184,10 +192,14 @@
       </div>
       <a href="{% url 'products:list' %}?sale=1" class="btn-link-arrow text-white">Все акции <i class="bi bi-arrow-right"></i></a>
     </div>
-    <div class="row g-3">
-      {% for product in sale_products %}
-      {% include 'products/partials/product_card.html' with product=product dark=True %}
-      {% endfor %}
+    <div class="products-rail-wrap">
+      <button class="rail-btn rail-btn-prev rail-btn-light" onclick="railScroll(this,-1)" type="button"><i class="bi bi-chevron-left"></i></button>
+      <div class="products-rail">
+        {% for product in sale_products %}
+        {% include 'products/partials/product_card.html' with product=product rail=True dark=True %}
+        {% endfor %}
+      </div>
+      <button class="rail-btn rail-btn-next rail-btn-light" onclick="railScroll(this,1)" type="button"><i class="bi bi-chevron-right"></i></button>
     </div>
   </div>
 </section>

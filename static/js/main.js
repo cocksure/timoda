@@ -2,6 +2,62 @@
 // TIMODA — Main JavaScript
 // ============================================================
 
+// Products rail marquee (manual jump, used by rail buttons)
+function railScroll(btn, dir) {
+  const rail = btn.closest('.products-rail-wrap').querySelector('.products-rail');
+  const itemWidth = rail.querySelector('.rail-item')?.offsetWidth || 260;
+  // Instantly shift scrollLeft so the marquee jumps forward/back
+  rail.scrollLeft += dir * (itemWidth + 16) * 2;
+}
+
+// Auto-scroll: continuous marquee like a ticker tape
+function initRailAutoScroll() {
+  document.querySelectorAll('.products-rail').forEach(rail => {
+    const wrap = rail.closest('.products-rail-wrap');
+    if (!wrap) return;
+
+    const origItems = Array.from(rail.querySelectorAll('.rail-item'));
+    if (origItems.length < 2) return;
+
+    // Duplicate items so the loop is seamless
+    origItems.forEach(item => {
+      const clone = item.cloneNode(true);
+      clone.setAttribute('aria-hidden', 'true');
+      rail.appendChild(clone);
+    });
+
+    const speed = 0.45; // px per frame — slow, like water current
+    let paused = false;
+    let origWidth = 0;
+
+    function measure() {
+      // gap is 16px between items
+      origWidth = origItems.reduce((sum, item) => sum + item.offsetWidth + 16, 0);
+    }
+    measure();
+    window.addEventListener('resize', measure, { passive: true });
+
+    (function step() {
+      if (!paused && origWidth > 0) {
+        rail.scrollLeft += speed;
+        // Seamless reset: when we've scrolled past originals, jump back
+        if (rail.scrollLeft >= origWidth) {
+          rail.scrollLeft -= origWidth;
+        }
+      }
+      requestAnimationFrame(step);
+    })();
+
+    // Pause on hover
+    wrap.addEventListener('mouseenter', () => { paused = true; });
+    wrap.addEventListener('mouseleave', () => { paused = false; });
+
+    // Pause on touch, resume 2s after finger lifts
+    rail.addEventListener('touchstart', () => { paused = true; }, { passive: true });
+    rail.addEventListener('touchend',   () => { setTimeout(() => { paused = false; }, 2000); }, { passive: true });
+  });
+}
+
 // Cart toast notification (called by HTMX hx-on::after-request)
 function showCartToast(productName) {
   const toastEl = document.getElementById('cartToast');
@@ -74,8 +130,50 @@ function initCardNavigation() {
   });
 })();
 
+// Fade-in cards as they scroll into view
+function initScrollReveal() {
+  const cards = document.querySelectorAll('.product-card');
+  if (!cards.length || !('IntersectionObserver' in window)) return;
+
+  cards.forEach((card, i) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(22px)';
+    card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const card = entry.target;
+      // small stagger based on position in row
+      const delay = (Array.from(card.parentElement?.children || []).indexOf(card) % 4) * 60;
+      setTimeout(() => {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+        // hand control back to CSS hover after animation
+        setTimeout(() => {
+          card.style.transition = '';
+          card.style.opacity = '';
+          card.style.transform = '';
+        }, 520);
+      }, delay);
+      observer.unobserve(card);
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -16px 0px' });
+
+  cards.forEach(card => observer.observe(card));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initCardNavigation();
+  initRailAutoScroll();
+  initScrollReveal();
+
+  // Chrome blocks autoplay unless muted is set programmatically too
+  document.querySelectorAll('video[autoplay]').forEach(v => {
+    v.muted = true;
+    v.play().catch(() => {});
+  });
 
   // Initialize Bootstrap tooltips
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {

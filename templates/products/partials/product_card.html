@@ -1,6 +1,6 @@
 {% load static %}
 {% with first_variant=product.variants.first %}
-<div class="col-6 col-md-4 col-xl-3">
+<div class="{% if rail %}rail-item{% else %}col-6 col-md-4 col-xl-3{% endif %}">
   <div class="product-card {% if dark %}product-card-dark{% endif %}">
     <a href="{% url 'products:detail' product.slug %}" class="product-card-img-link">
       <div class="product-card-img-wrap">
