@@ -24,22 +24,20 @@
         <img src="{% static 'img/TimodaLogo.png' %}" alt="Timoda" height="28">
       </a>
 
-      <!-- Mobile icons -->
-      <div class="d-flex d-lg-none align-items-center gap-2 ms-auto me-2">
-        <button class="btn btn-link mobile-search-toggle p-0" data-bs-toggle="collapse" data-bs-target="#mobileSearch">
-          <i class="bi bi-search fs-5"></i>
+      <!-- Mobile icons (bottom nav handles main nav) -->
+      <div class="d-flex d-lg-none align-items-center gap-1 ms-auto">
+        <button class="icon-btn mobile-search-toggle" data-bs-toggle="collapse" data-bs-target="#mobileSearch" style="width:40px;height:40px">
+          <i class="bi bi-search"></i>
         </button>
-        <a href="{% url 'cart:detail' %}" class="btn btn-link cart-icon-btn p-0 position-relative">
-          <i class="bi bi-bag fs-5"></i>
-          {% if cart|length > 0 %}
-          <span class="cart-badge" id="cart-count">{{ cart|length }}</span>
-          {% endif %}
-        </a>
+        <span id="cart-icon-wrap-mobile">
+          <a href="{% url 'cart:detail' %}" class="icon-btn cart-icon-btn position-relative" style="width:40px;height:40px">
+            <i class="bi bi-bag"></i>
+            {% if cart|length > 0 %}
+            <span class="cart-badge">{{ cart|length }}</span>
+            {% endif %}
+          </a>
+        </span>
       </div>
-
-      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
 
       <div class="collapse navbar-collapse" id="navbarMain">
         <ul class="navbar-nav mx-auto gap-lg-1">

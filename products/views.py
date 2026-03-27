@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.core.paginator import Paginator
 from django.core.cache import cache
 from .models import Product, Category, Review, ProductVariant
@@ -22,7 +22,16 @@ class ReviewForm(django_forms.ModelForm):
 
 
 def product_list(request):
-    products = Product.objects.filter(is_active=True).prefetch_related('images').select_related('category')
+    approved_reviews_prefetch = Prefetch(
+        'reviews',
+        queryset=Review.objects.filter(is_approved=True),
+        to_attr='approved_reviews'
+    )
+    products = Product.objects.filter(is_active=True).select_related('category').prefetch_related(
+        'images',
+        'variants',
+        approved_reviews_prefetch,
+    )
     categories = Category.objects.filter(is_active=True, parent=None)
 
     category_slug = request.GET.get('category')
@@ -120,11 +129,15 @@ def product_detail(request, slug):
         }
         cache.set(cache_key, ctx, PRODUCT_CACHE_TTL)
 
-    # review_form вне кэша — зависит от пользователя
+    # review_form и cart_variant_ids вне кэша — зависят от пользователя
     ctx['review_form'] = None
     if request.user.is_authenticated:
         if not ctx['product'].reviews.filter(user=request.user).exists():
             ctx['review_form'] = ReviewForm()
+
+    from cart.cart import Cart
+    cart = Cart(request)
+    ctx['cart_variant_ids'] = list({item['variant'].id for item in cart})
 
     return render(request, 'products/detail.html', ctx)
 

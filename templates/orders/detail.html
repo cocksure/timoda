@@ -32,12 +32,12 @@
               <p class="mb-0 small text-muted">{{ item.size_name }} / {{ item.color_name }} × {{ item.quantity }}</p>
             </div>
           </div>
-          <span class="fw-semibold text-nowrap">{{ item.total_price|floatformat:0 }} сум</span>
+          <span class="fw-semibold text-nowrap">{{ item.total_price|money }} сум</span>
         </div>
         {% endfor %}
         <div class="d-flex justify-content-between pt-3 fw-bold">
           <span>Итого</span>
-          <span>{{ order.total|floatformat:0 }} сум</span>
+          <span>{{ order.total|money }} сум</span>
         </div>
       </div>
     </div>

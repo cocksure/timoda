@@ -1,44 +1,10 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags static %}
 {% block title %}Оформление заказа — Timoda{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<style>
-  /* Delivery method */
-  .delivery-methods { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
-  .delivery-option { flex: 1; min-width: 160px; cursor: pointer; display: flex; }
-  .delivery-card {
-    display: flex; align-items: center; gap: 12px;
-    border: 2px solid #E5E0D8; border-radius: 8px;
-    padding: 14px 16px; width: 100%;
-    transition: border-color .2s, background .2s;
-  }
-  .delivery-option.active .delivery-card { border-color: #1A1A1A; background: #fafaf7; }
-  .delivery-icon { font-size: 1.5rem; color: #3E2C1A; }
-
-  /* Pickup points */
-  .pickup-points-list { display: flex; flex-direction: column; gap: 8px; }
-  .pickup-point-item {
-    display: flex; align-items: flex-start; gap: 12px;
-    border: 2px solid #E5E0D8; border-radius: 8px;
-    padding: 12px 14px; cursor: pointer;
-    transition: border-color .2s, background .2s;
-  }
-  .pickup-point-item:hover { border-color: #C4A882; }
-  .pickup-point-item.selected { border-color: #1A1A1A; background: #fafaf7; }
-  .pickup-point-radio { font-size: 1.1rem; margin-top: 2px; flex-shrink: 0; }
-
-  /* Courier address map */
-  #deliveryMap { height: 320px; border-radius: 8px; border: 1px solid #E5E0D8; z-index: 0; }
-  #mapContainer { display: none; margin-bottom: 1rem; }
-  .map-search-row { display: flex; gap: 8px; margin-bottom: 8px; }
-  .map-search-row input { flex: 1; }
-  .map-pin-info { font-size: 12px; color: #7A7068; margin-top: 6px; display: flex; align-items: center; gap: 5px; }
-  #toggleMapBtn.active { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
-  .map-filled-badge { display: none; font-size: 11px; color: #2e7d32; align-items: center; gap: 4px; margin-left: 8px; }
-  .map-filled-badge.show { display: inline-flex; }
-</style>
+<link rel="stylesheet" href="{% static 'css/checkout.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -87,25 +53,44 @@
             {% endif %}
           </div>
 
-          <!-- Pickup points list (shown when pickup selected) -->
+          <!-- Pickup points (shown when pickup selected) -->
           {% if pickup_points %}
           <div id="pickupSection" style="display:none;" class="mb-4">
             <input type="hidden" name="pickup_point_id" id="pickupPointId">
-            <div class="pickup-points-list">
-              {% for point in pickup_points %}
-              <div class="pickup-point-item" data-id="{{ point.pk }}"
-                   {% if point.latitude and point.longitude %}data-lat="{{ point.latitude }}" data-lng="{{ point.longitude }}"{% endif %}>
-                <div class="pickup-point-radio"><i class="bi bi-circle" id="pickup-icon-{{ point.pk }}"></i></div>
-                <div class="pickup-point-info">
-                  <p class="mb-0 fw-semibold">{{ point.name }}</p>
-                  <p class="mb-0 small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ point.address }}</p>
-                  {% if point.working_hours %}<p class="mb-0 small text-muted"><i class="bi bi-clock me-1"></i>{{ point.working_hours }}</p>{% endif %}
-                  {% if point.phone %}<p class="mb-0 small text-muted"><i class="bi bi-telephone me-1"></i>{{ point.phone }}</p>{% endif %}
-                </div>
-              </div>
-              {% endfor %}
+
+            <!-- Tabs -->
+            <div class="pickup-tabs">
+              <button type="button" class="pickup-tab-btn active" data-tab="list">
+                <i class="bi bi-list-ul me-1"></i>Список
+              </button>
+              <button type="button" class="pickup-tab-btn" data-tab="map">
+                <i class="bi bi-map me-1"></i>Карта
+              </button>
             </div>
-            <div id="pickupMap" style="height:220px;border-radius:8px;border:1px solid #E5E0D8;margin-top:12px;display:none;"></div>
+
+            <!-- List pane -->
+            <div class="pickup-tab-pane active" id="pickupPaneList">
+              <div class="pickup-points-list">
+                {% for point in pickup_points %}
+                <div class="pickup-point-item" data-id="{{ point.pk }}"
+                     {% if point.latitude and point.longitude %}data-lat="{{ point.latitude }}" data-lng="{{ point.longitude }}"{% endif %}>
+                  <div class="pickup-point-radio"><i class="bi bi-circle" id="pickup-icon-{{ point.pk }}"></i></div>
+                  <div class="pickup-point-info">
+                    <p class="mb-0 fw-semibold">{{ point.name }}</p>
+                    <p class="mb-0 small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ point.address }}</p>
+                    {% if point.working_hours %}<p class="mb-0 small text-muted"><i class="bi bi-clock me-1"></i>{{ point.working_hours }}</p>{% endif %}
+                    {% if point.phone %}<p class="mb-0 small text-muted"><i class="bi bi-telephone me-1"></i>{{ point.phone }}</p>{% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Map pane -->
+            <div class="pickup-tab-pane" id="pickupPaneMap">
+              <div id="pickupMapFull" data-logo="{% static 'img/TimodaLogo.png' %}"></div>
+              <p class="mt-2 mb-0 small text-muted"><i class="bi bi-hand-index-thumb me-1"></i>Нажмите на метку чтобы выбрать пункт выдачи</p>
+            </div>
           </div>
           {% endif %}
 
@@ -164,7 +149,7 @@
             <label class="payment-method-option">
               <input type="radio" name="payment_method" value="payme" class="d-none">
               <div class="payment-method-card">
-                <span class="payment-logo payme-logo">Payme</span>
+                <img src="{% static 'img/payme-logo.png' %}" alt="Payme">
                 <div>
                   <p class="mb-0 fw-semibold">Payme</p>
                   <p class="mb-0 text-muted small">Карты Uzcard, Humo, Visa, Mastercard</p>
@@ -174,7 +159,7 @@
             <label class="payment-method-option">
               <input type="radio" name="payment_method" value="click" class="d-none">
               <div class="payment-method-card">
-                <span class="payment-logo click-logo">Click</span>
+                <img src="{% static 'img/click_logo.png' %}" alt="Click">
                 <div>
                   <p class="mb-0 fw-semibold">Click</p>
                   <p class="mb-0 text-muted small">Uzcard, Humo, онлайн-банкинг</p>
@@ -199,13 +184,12 @@
             <p class="mb-0 small fw-semibold">{{ item.variant.product.name }}</p>
             <p class="mb-0 small text-muted">{{ item.size_name }} / {{ item.color_name }} × {{ item.quantity }}</p>
           </div>
-          <span class="small fw-semibold text-nowrap">{{ item.total_price|floatformat:0 }} сум</span>
+          <span class="small fw-semibold text-nowrap">{{ item.total_price|money }} сум</span>
         </div>
         {% endfor %}
-        <hr>
-        <div class="d-flex justify-content-between fw-bold">
-          <span>Итого</span>
-          <span>{{ cart.get_total_price|floatformat:0 }} сум</span>
+        <div class="checkout-total-row d-flex justify-content-between align-items-center">
+          <span class="total-label">Итого</span>
+          <span class="total-amount">{{ cart.get_total_price|money }} <span style="font-size:.8em;font-weight:500;opacity:.7">сум</span></span>
         </div>
       </div>
     </div>
@@ -215,178 +199,5 @@
 
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-// ── Delivery method toggle ────────────────────────────────────
-const deliveryRadios = document.querySelectorAll('.delivery-radio');
-const addressSection = document.getElementById('addressSection');
-const pickupSection  = document.getElementById('pickupSection');
-let pickupMap = null, pickupMarker = null;
-
-function onDeliveryChange() {
-  const val = document.querySelector('.delivery-radio:checked')?.value;
-  const isCourier = val !== 'pickup';
-
-  // Toggle sections
-  if (addressSection) addressSection.style.display = isCourier ? '' : 'none';
-  if (pickupSection)  pickupSection.style.display  = isCourier ? 'none' : '';
-
-  // Enable/disable required fields so browser validation doesn't block hidden fields
-  if (addressSection) {
-    addressSection.querySelectorAll('input, textarea, select').forEach(el => {
-      if (isCourier) {
-        if (el.dataset.required) el.required = true;
-      } else {
-        if (el.required) el.dataset.required = 'true';
-        el.required = false;
-      }
-    });
-  }
-
-  // Style active card
-  document.querySelectorAll('.delivery-option').forEach(opt => {
-    opt.classList.toggle('active', opt.querySelector('input').checked);
-  });
-
-  // Init pickup map once
-  if (!isCourier && !pickupMap) initPickupMap();
-}
-
-deliveryRadios.forEach(r => r.addEventListener('change', onDeliveryChange));
-
-// Select a pickup point
-let selectedPickupId = null;
-document.querySelectorAll('.pickup-point-item').forEach(item => {
-  item.addEventListener('click', () => {
-    selectedPickupId = item.dataset.id;
-    document.getElementById('pickupPointId').value = selectedPickupId;
-    document.querySelectorAll('.pickup-point-item').forEach(i => i.classList.remove('selected'));
-    item.classList.add('selected');
-    document.querySelectorAll('[id^=pickup-icon-]').forEach(ic => ic.className = 'bi bi-circle');
-    document.getElementById('pickup-icon-' + selectedPickupId).className = 'bi bi-record-circle-fill text-dark';
-
-    // Pan map to this point
-    if (pickupMap && item.dataset.lat && item.dataset.lng) {
-      pickupMap.setView([parseFloat(item.dataset.lat), parseFloat(item.dataset.lng)], 16);
-    }
-  });
-});
-
-function initPickupMap() {
-  const mapEl = document.getElementById('pickupMap');
-  if (!mapEl) return;
-  mapEl.style.display = 'block';
-
-  pickupMap = L.map('pickupMap').setView([41.2995, 69.2401], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(pickupMap);
-
-  // Add markers for each pickup point
-  document.querySelectorAll('.pickup-point-item').forEach(item => {
-    if (!item.dataset.lat || !item.dataset.lng) return;
-    const lat = parseFloat(item.dataset.lat), lng = parseFloat(item.dataset.lng);
-    const name = item.querySelector('.fw-semibold').textContent;
-    const addr = item.querySelector('.text-muted')?.textContent || '';
-    L.marker([lat, lng]).addTo(pickupMap)
-      .bindPopup(`<strong>${name}</strong><br>${addr}`)
-      .on('click', () => item.click());
-  });
-
-  setTimeout(() => pickupMap.invalidateSize(), 100);
-}
-</script>
-<script>
-// Tashkent default center
-const DEFAULT_LAT = 41.2995, DEFAULT_LNG = 69.2401;
-let map, marker;
-
-function initMap() {
-  map = L.map('deliveryMap').setView([DEFAULT_LAT, DEFAULT_LNG], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-  }).addTo(map);
-
-  map.on('click', e => {
-    placeMarker(e.latlng.lat, e.latlng.lng);
-    reverseGeocode(e.latlng.lat, e.latlng.lng);
-  });
-}
-
-function placeMarker(lat, lng) {
-  if (marker) {
-    marker.setLatLng([lat, lng]);
-  } else {
-    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-    marker.on('dragend', e => {
-      const pos = e.target.getLatLng();
-      reverseGeocode(pos.lat, pos.lng);
-      document.getElementById('hiddenLat').value = pos.lat;
-      document.getElementById('hiddenLng').value = pos.lng;
-    });
-  }
-  document.getElementById('hiddenLat').value = lat;
-  document.getElementById('hiddenLng').value = lng;
-  document.getElementById('mapFilledBadge').classList.add('show');
-}
-
-async function reverseGeocode(lat, lng) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ru`;
-    const resp = await fetch(url, { headers: { 'Accept-Language': 'ru' } });
-    const data = await resp.json();
-    if (!data.address) return;
-    const a = data.address;
-
-    const road = a.road || a.pedestrian || a.footway || '';
-    const houseNum = a.house_number || '';
-    const street = [road, houseNum].filter(Boolean).join(', ');
-    const city = a.city || a.town || a.village || a.county || a.state || '';
-
-    if (street) setField('shipping_address', street);
-    if (city)   setField('city', city);
-    if (a.postcode) setField('postal_code', a.postcode);
-    if (a.country)  setField('country', a.country);
-  } catch (_) {}
-}
-
-function setField(name, value) {
-  const el = document.querySelector(`[name="${name}"]`);
-  if (el && value) el.value = value;
-}
-
-// Toggle map visibility
-document.getElementById('toggleMapBtn').addEventListener('click', () => {
-  const container = document.getElementById('mapContainer');
-  const btn = document.getElementById('toggleMapBtn');
-  const visible = container.style.display !== 'none';
-  container.style.display = visible ? 'none' : 'block';
-  btn.classList.toggle('active', !visible);
-  if (!visible) {
-    if (!map) initMap();
-    else map.invalidateSize();
-  }
-});
-
-// Address search on map
-async function searchAddress() {
-  const q = document.getElementById('mapSearch').value.trim();
-  if (!q) return;
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&accept-language=ru`;
-    const resp = await fetch(url);
-    const results = await resp.json();
-    if (!results.length) return;
-    const lat = parseFloat(results[0].lat);
-    const lng = parseFloat(results[0].lon);
-    map.setView([lat, lng], 17);
-    placeMarker(lat, lng);
-    reverseGeocode(lat, lng);
-  } catch (_) {}
-}
-
-document.getElementById('mapSearchBtn').addEventListener('click', searchAddress);
-document.getElementById('mapSearch').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); searchAddress(); }
-});
-</script>
+<script src="{% static 'js/checkout.js' %}"></script>
 {% endblock %}

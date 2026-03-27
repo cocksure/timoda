@@ -4,6 +4,37 @@
 {% block title %}{{ product.name }} — Timoda{% endblock %}
 {% block meta_description %}{{ product.meta_description|default:product.description|truncatechars:160 }}{% endblock %}
 
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ product.name }}{% endblock %}
+{% block og_description %}{{ product.meta_description|default:product.description|truncatechars:200 }}{% endblock %}
+{% block og_image %}{% if product.primary_image %}{{ request.scheme }}://{{ request.get_host }}{{ product.primary_image.image.url }}{% else %}{% static 'img/TimodaLogo.png' %}{% endif %}{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  "description": "{{ product.description|truncatechars:500|escapejs }}",
+  "image": "{% if product.primary_image %}{{ request.scheme }}://{{ request.get_host }}{{ product.primary_image.image.url }}{% endif %}",
+  "url": "{{ request.build_absolute_uri }}",
+  "brand": { "@type": "Brand", "name": "Timoda" },
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "UZS",
+    "price": "{{ product.sale_price|default:product.price }}",
+    "availability": "{% if product.variants.all %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "url": "{{ request.build_absolute_uri }}"
+  }{% if product.avg_rating > 0 %},
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "{{ product.avg_rating }}",
+    "reviewCount": "{{ product.reviews_count }}"
+  }{% endif %}
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
   <!-- Breadcrumb -->
@@ -26,7 +57,7 @@
         <div class="product-gallery-main mb-3">
           {% if product.primary_image %}
           <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}"
-               class="product-gallery-main-img" id="mainImage">
+               class="product-gallery-main-img" id="mainImage" loading="eager">
           {% else %}
           <div class="product-gallery-placeholder">
             <i class="bi bi-image text-muted fs-1"></i>
@@ -34,13 +65,13 @@
           {% endif %}
         </div>
         <!-- Thumbnails — always visible, scrollable -->
-        {% if product.images.count > 1 %}
+        {% if product.images.all|length > 1 %}
         <div class="product-gallery-thumbs" id="galleryThumbs">
           {% for img in product.images.all %}
           <div class="gallery-thumb {% if img.is_primary %}active{% endif %}"
                data-color="{{ img.color_id|default:'' }}"
                onclick="selectGalleryThumb(this, '{{ img.image.url }}')">
-            <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:product.name }}">
+            <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:product.name }}" loading="lazy">
           </div>
           {% endfor %}
         </div>
@@ -72,19 +103,20 @@
         <!-- Price -->
         <div class="product-detail-price mb-4">
           {% if product.sale_price %}
-          <span class="price-sale-lg">{{ product.sale_price|floatformat:0 }} сум</span>
-          <span class="price-original-lg">{{ product.price|floatformat:0 }} сум</span>
+          <span class="price-sale-lg">{{ product.sale_price|money }} сум</span>
+          <span class="price-original-lg">{{ product.price|money }} сум</span>
           <span class="badge bg-danger ms-2">-{{ product.discount_percent }}%</span>
           {% else %}
-          <span class="price-current-lg">{{ product.price|floatformat:0 }} сум</span>
+          <span class="price-current-lg">{{ product.price|money }} сум</span>
           {% endif %}
         </div>
 
         <!-- Add to cart form -->
         <form method="POST" id="add-to-cart-form"
-              hx-post=""
-              hx-target="#cart-icon-wrap"
-              hx-swap="outerHTML">
+              action="#"
+              data-cart-base="{{ ADD_CART_BASE|default:'/cart/add/' }}"
+              data-cart-url="{% url 'cart:detail' %}"
+              data-product-name="{{ product.name|escapejs }}">
           {% csrf_token %}
 
           <!-- Color selection -->
@@ -256,147 +288,33 @@
   </section>
   {% endif %}
 </div>
+
+<!-- Mobile sticky buy bar -->
+<div class="mobile-buy-bar d-lg-none" id="mobileBuyBar">
+  <div class="mobile-buy-price">
+    {% if product.sale_price %}
+    <span class="price-sale" style="font-size:1.1rem;font-weight:700">{{ product.sale_price|money }}</span>
+    <span class="text-muted" style="font-size:.75rem;text-decoration:line-through">{{ product.price|money }}</span>
+    {% else %}
+    <span style="font-size:1.1rem;font-weight:700;color:var(--dark-brown)">{{ product.price|money }}</span>
+    {% endif %}
+    <span class="text-muted" style="font-size:.75rem">сум</span>
+  </div>
+  <button class="btn btn-dark flex-grow-1" id="mobileBuyBtn" style="border-radius:12px;font-weight:600;letter-spacing:.04em">
+    <i class="bi bi-bag-plus me-2"></i>В корзину
+  </button>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-const VARIANT_MAP = {{ variant_map|safe }};
-const COLOR_IMAGE_MAP = {{ color_image_map|safe }};
-const STOCK_MAP = {{ stock_map|safe }};
-const ADD_CART_BASE = '/cart/add/';
-
-function changeQty(delta) {
-  const input = document.getElementById('quantity');
-  const val = parseInt(input.value) + delta;
-  if (val >= 1 && val <= 99) input.value = val;
-}
-
-function setMainImage(url) {
-  const mainImg = document.getElementById('mainImage');
-  if (!mainImg || mainImg.src.endsWith(url)) return;
-  mainImg.style.opacity = '0';
-  setTimeout(() => { mainImg.src = url; mainImg.style.opacity = '1'; }, 150);
-}
-
-function selectGalleryThumb(thumbEl, url) {
-  setMainImage(url);
-  document.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
-  thumbEl.classList.add('active');
-}
-
-function switchGalleryToColor(colorId) {
-  const colorStr = String(colorId);
-  const thumbs = Array.from(document.querySelectorAll('.gallery-thumb'));
-  if (!thumbs.length) return;
-
-  // Remove previous color-match highlights
-  thumbs.forEach(t => t.classList.remove('color-match'));
-
-  // Find thumbs for this color
-  const colorThumbs = thumbs.filter(t => t.dataset.color === colorStr);
-  if (!colorThumbs.length) return; // no tagged images — leave gallery as-is
-
-  // Highlight matched thumbs and scroll to the first
-  colorThumbs.forEach(t => t.classList.add('color-match'));
-  colorThumbs[0].classList.add('active');
-  thumbs.filter(t => !colorThumbs.includes(t)).forEach(t => t.classList.remove('active'));
-  colorThumbs[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-
-  // Switch main image
-  const firstImg = colorThumbs[0].querySelector('img');
-  if (firstImg) setMainImage(firstImg.src);
-}
-
-function getVariantId() {
-  const sizeId = parseInt(document.querySelector('.size-radio:checked')?.value) || null;
-  const colorId = parseInt(document.querySelector('.color-radio:checked')?.value) || null;
-  if (sizeId && colorId && VARIANT_MAP[sizeId]?.[colorId]) return VARIANT_MAP[sizeId][colorId];
-  if (sizeId && VARIANT_MAP[sizeId]) return Object.values(VARIANT_MAP[sizeId])[0];
-  if (Object.keys(VARIANT_MAP).length) return Object.values(Object.values(VARIANT_MAP)[0])[0];
-  return null;
-}
-
-function updateStockInfo() {
-  const el = document.getElementById('stock-info');
-  if (!el) return;
-  const variantId = getVariantId();
-  if (variantId === null || STOCK_MAP[variantId] === undefined) { el.innerHTML = ''; return; }
-  const stock = STOCK_MAP[variantId];
-  if (stock === 0) {
-    el.innerHTML = '<span class="stock-badge stock-none"><i class="bi bi-x-circle me-1"></i>Нет в наличии</span>';
-  } else if (stock <= 5) {
-    el.innerHTML = `<span class="stock-badge stock-low"><i class="bi bi-exclamation-circle me-1"></i>Осталось: ${stock} шт. — торопитесь!</span>`;
-  } else {
-    el.innerHTML = `<span class="stock-badge stock-ok"><i class="bi bi-check-circle me-1"></i>В наличии: ${stock} шт.</span>`;
-  }
-}
-
-function updateCartFormAction() {
-  const btn = document.getElementById('add-cart-btn');
-  const form = document.getElementById('add-to-cart-form');
-  if (!form) return;
-  const variantId = getVariantId();
-
-  if (variantId) {
-    const url = `${ADD_CART_BASE}${variantId}/`;
-    form.action = url;
-    form.setAttribute('hx-post', url);
-    btn.disabled = STOCK_MAP[variantId] === 0;
-    btn.innerHTML = STOCK_MAP[variantId] === 0
-      ? 'Нет в наличии'
-      : '<i class="bi bi-bag-plus me-2"></i>Добавить в корзину';
-  } else {
-    btn.disabled = true;
-    btn.innerHTML = 'Нет в наличии';
-  }
-  updateStockInfo();
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Set initial labels
-  const firstColor = document.querySelector('.color-radio:checked');
-  if (firstColor) {
-    const colorLabel = document.getElementById('selected-color');
-    if (colorLabel) colorLabel.textContent = firstColor.closest('label').querySelector('.color-swatch')?.title || '';
-    if (Object.keys(COLOR_IMAGE_MAP).length > 0) switchGalleryToColor(firstColor.value);
-  }
-  const firstSize = document.querySelector('.size-radio:checked');
-  if (firstSize) {
-    const sizeLabel = document.getElementById('selected-size');
-    if (sizeLabel) sizeLabel.textContent = firstSize.closest('label').querySelector('.size-btn')?.textContent || '';
-  }
-
-  document.querySelectorAll('.color-radio').forEach(r => {
-    r.addEventListener('change', () => {
-      const colorLabel = document.getElementById('selected-color');
-      if (colorLabel) colorLabel.textContent = r.closest('label').querySelector('.color-swatch')?.title || '';
-      if (Object.keys(COLOR_IMAGE_MAP).length > 0) switchGalleryToColor(r.value);
-      updateCartFormAction();
-    });
-  });
-
-  document.querySelectorAll('.size-radio').forEach(r => {
-    r.addEventListener('change', updateCartFormAction);
-  });
-
-  updateCartFormAction();
-
-  // ── Image zoom (loupe) ──────────────────────────────────────
-  const galleryMain = document.querySelector('.product-gallery-main');
-  const mainImg = document.getElementById('mainImage');
-  if (galleryMain && mainImg) {
-    galleryMain.addEventListener('mousemove', e => {
-      const rect = galleryMain.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-      const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
-      mainImg.style.transformOrigin = `${x}% ${y}%`;
-      galleryMain.classList.add('zooming');
-    });
-    galleryMain.addEventListener('mouseleave', () => {
-      galleryMain.classList.remove('zooming');
-      mainImg.style.transformOrigin = '50% 50%';
-    });
-  }
-});
+// Django template data — must stay in template
+window.VARIANT_MAP      = {{ variant_map|safe }};
+window.COLOR_IMAGE_MAP  = {{ color_image_map|safe }};
+window.STOCK_MAP        = {{ stock_map|safe }};
+window.ADD_CART_BASE    = '/cart/add/';
+window.CART_VARIANT_IDS = new Set({{ cart_variant_ids|safe }});
+window.CART_URL         = '{% url "cart:detail" %}';
 </script>
+<script src="{% static 'js/product-detail.js' %}"></script>
 {% endblock %}

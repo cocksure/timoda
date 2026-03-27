@@ -47,10 +47,10 @@
           <td class="text-muted small">{{ product.category.name|default:"—" }}</td>
           <td>
             {% if product.sale_price %}
-            <span class="text-danger fw-semibold">{{ product.sale_price|floatformat:0 }}</span>
-            <span class="text-muted text-decoration-line-through small ms-1">{{ product.price|floatformat:0 }}</span>
+            <span class="text-danger fw-semibold">{{ product.sale_price|money }}</span>
+            <span class="text-muted text-decoration-line-through small ms-1">{{ product.price|money }}</span>
             {% else %}
-            {{ product.price|floatformat:0 }}
+            {{ product.price|money }}
             {% endif %}
           </td>
           <td>

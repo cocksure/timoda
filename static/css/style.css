@@ -123,11 +123,35 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
   justify-content: center;
   width: 36px; height: 36px;
   border-radius: var(--radius);
-  color: var(--near-black);
+  color: var(--near-black) !important;
   font-size: 18px;
   transition: background var(--transition), color var(--transition);
 }
-.icon-btn:hover { background: var(--warm-white); color: var(--brown); }
+.icon-btn:hover { background: var(--warm-white); color: var(--brown) !important; }
+
+/* Cart icon shake animation */
+@keyframes cart-shake {
+  0%,100% { transform: rotate(0deg) scale(1); }
+  20%      { transform: rotate(-18deg) scale(1.15); }
+  40%      { transform: rotate(18deg) scale(1.15); }
+  60%      { transform: rotate(-10deg) scale(1.1); }
+  80%      { transform: rotate(10deg) scale(1.1); }
+}
+.cart-icon-shake {
+  display: inline-block;
+  animation: cart-shake 0.55s ease;
+}
+
+/* "Перейти в корзину" state */
+.btn-add-to-cart.btn-in-cart {
+  background: #2d7a3a;
+  color: #fff;
+}
+.btn-add-to-cart.btn-in-cart:hover {
+  background: #245e2d;
+  color: #fff;
+  transform: translateY(-1px);
+}
 
 /* Cart badge */
 .cart-badge {
@@ -479,8 +503,9 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 .product-card-rating { margin-bottom: 6px; }
 .product-card-price { margin-top: auto; padding-top: 8px; }
 
-.price-current, .price-current-lg { font-weight: 600; color: var(--near-black); }
-.price-sale, .price-sale-lg { font-weight: 700; color: #e74c3c; }
+.price-current { font-weight: 600; color: var(--brown); }
+.price-current-lg { font-weight: 700; color: var(--dark-brown); font-size: 1.5rem; }
+.price-sale, .price-sale-lg { font-weight: 700; color: #c0392b; }
 .price-original, .price-original-lg {
   text-decoration: line-through;
   color: var(--text-muted);
@@ -489,7 +514,6 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 }
 .price-sale-lg { font-size: 1.5rem; }
 .price-original-lg { font-size: 1rem; }
-.price-current-lg { font-size: 1.5rem; }
 
 /* ---- Promo strip ---- */
 .promo-strip {
@@ -506,6 +530,10 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
+  position: sticky;
+  top: 104px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 .filter-title {
   font-size: 12px;
@@ -940,12 +968,162 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 .alert-info { background: #cff4fc; border-color: #9eeaf9; color: #055160; }
 .alert-warning { background: #fff3cd; border-color: #ffe69c; color: #664d03; }
 
-/* ---- Responsive tweaks ---- */
+/* ============================================================
+   MOBILE — Bottom Navigation Bar
+   ============================================================ */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  z-index: 1030;
+  height: 60px;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 20px rgba(0,0,0,.07);
+}
+.mob-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .03em;
+  text-decoration: none;
+  padding: 6px 4px;
+  position: relative;
+  transition: color .18s;
+}
+.mob-nav-item i { font-size: 21px; line-height: 1; }
+.mob-nav-item.active { color: var(--dark-brown); }
+.mob-nav-item:hover { color: var(--brown); }
+.mob-cart-badge {
+  position: absolute;
+  top: 5px;
+  left: calc(50% + 4px);
+  background: var(--dark-brown);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px; height: 16px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 3px;
+  border: 1.5px solid #fff;
+}
+
+/* ============================================================
+   MOBILE — Sticky Buy Bar (product detail)
+   ============================================================ */
+.mobile-buy-bar {
+  position: fixed;
+  bottom: 60px; /* above bottom nav */
+  left: 0; right: 0;
+  background: rgba(250,250,247,.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 1020;
+  box-shadow: 0 -4px 20px rgba(0,0,0,.08);
+  transition: transform .3s ease, opacity .3s ease;
+}
+.mobile-buy-bar.hidden {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.mobile-buy-price {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   MOBILE — General responsive tweaks
+   ============================================================ */
+@media (max-width: 991px) {
+  /* Body padding for bottom nav + possible buy bar */
+  body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+
+  /* Tighter page padding */
+  .container { padding-left: 14px; padding-right: 14px; }
+
+  /* Page title smaller */
+  .page-title { font-size: 1.5rem; }
+  .section-title { font-size: 1.4rem; }
+
+  /* Products toolbar compact */
+  .products-toolbar { gap: 8px; }
+  .products-page-title { font-size: 1.3rem; }
+
+  /* Cart summary on mobile — not sticky */
+  .cart-summary-card.sticky-top {
+    position: relative !important;
+    top: auto !important;
+    z-index: auto !important;
+  }
+}
+
 @media (max-width: 768px) {
   .hero-slide { height: 60vh; min-height: 360px; }
   .hero-title { font-size: 2rem; }
   .product-card-img-wrap { aspect-ratio: 3/4; }
   .cart-item-img { width: 60px; height: 75px; }
+
+  /* Product cards — 2 per row with comfortable size */
+  .row .col-6 .product-card-img-wrap { aspect-ratio: 3/4; }
+
+  /* Bigger touch targets */
+  .qty-btn-sm { width: 36px; height: 36px; }
+  .qty-display { font-size: 15px; }
+
+  /* Checkout form — full width on mobile */
+  .checkout-form-card { padding: 16px; }
+  .cart-summary-card { padding: 16px; }
+
+  /* Hero text smaller */
+  .hero-subtitle { font-size: 1rem; }
+  .btn-hero, .btn-hero-dark { padding: 12px 24px; font-size: 12px; }
+
+  /* Rail cards slightly narrower */
+  .rail-item { flex: 0 0 180px; }
+
+  /* Footer compact on mobile */
+  .site-footer { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+  .site-footer .row { row-gap: 20px !important; }
+
+  /* Delivery option cards stacked */
+  .delivery-methods { flex-direction: column; }
+
+  /* Payment methods full width */
+  .payment-methods { gap: 8px; }
+
+  /* Auth card tighter */
+  .auth-card { padding: 24px 18px; }
+
+  /* Pagination bigger tap targets */
+  .page-link { min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+
+  /* Navbar logo size */
+  .logo img { height: 36px !important; }
+
+  /* Mobile search better */
+  #mobileSearch .form-control { font-size: 16px; } /* prevents iOS zoom on focus */
+  .form-control, .form-select { font-size: 16px; } /* prevents iOS zoom */
+}
+
+/* Larger phones landscape / small tablets */
+@media (min-width: 576px) and (max-width: 767px) {
+  .rail-item { flex: 0 0 210px; }
 }
 
 /* ---- Bootstrap overrides ---- */
@@ -1057,3 +1235,106 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 }
 .payme-logo { background: #00AAFF; color: #fff; }
 .click-logo  { background: #62AB00; color: #fff; }
+
+/* Payment logo images */
+.payment-method-card img[alt="Payme"],
+.payment-method-card img[alt="Click"] {
+  height: 30px;
+  width: auto;
+  max-width: 90px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* ---- Price & total accent colors ---- */
+
+/* Cart summary total row */
+.cart-summary-total {
+  border-top: 2px solid var(--border);
+  margin-top: 4px;
+  padding-top: 14px;
+}
+.cart-summary-total .total-label {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--near-black);
+}
+.cart-summary-total .total-amount {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dark-brown);
+  letter-spacing: .01em;
+}
+
+/* Cart item price */
+.cart-item-price {
+  font-weight: 600;
+  color: var(--brown);
+}
+
+/* Cart badge — warm */
+.cart-badge {
+  background: var(--dark-brown) !important;
+}
+
+/* Section eyebrow decorative dot */
+.section-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--tan);
+  margin-right: 8px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+/* Product detail price section */
+.product-detail-price-wrap {
+  background: linear-gradient(135deg, var(--warm-white) 0%, #f0ede8 100%);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+/* Checkout order summary total */
+.checkout-total-row {
+  background: linear-gradient(135deg, var(--warm-white), #ede8df);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-top: 8px;
+}
+.checkout-total-row .total-label {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.checkout-total-row .total-amount {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--dark-brown);
+}
+
+/* Orders list/detail totals */
+.order-total-amount {
+  font-weight: 700;
+  color: var(--dark-brown);
+  font-size: 1.05rem;
+}
+
+/* "Скидка" / discount price in cart */
+.text-danger { color: #c0392b !important; }
+
+/* Pickup selected confirmation accent */
+.pickup-point-item.selected {
+  border-color: var(--dark-brown) !important;
+  background: linear-gradient(135deg, var(--warm-white), #f0ede8) !important;
+}
+.pickup-point-item.selected .fw-semibold {
+  color: var(--dark-brown);
+}

@@ -39,7 +39,7 @@
           </td>
           <td class="text-muted small">{{ order.city }}</td>
           <td class="text-muted small">{{ order.items.count }}</td>
-          <td class="fw-semibold">{{ order.total|floatformat:0 }}</td>
+          <td class="fw-semibold">{{ order.total|money }}</td>
           <td><span class="badge-status status-{{ order.status }}">{{ order.get_status_display }}</span></td>
           <td class="text-muted small">{{ order.created_at|date:"d.m.Y H:i" }}</td>
           <td>

@@ -16,15 +16,15 @@
             <td class="fw-semibold">{{ item.product_name }}</td>
             <td class="text-muted small">{{ item.size_name }} / {{ item.color_name }}</td>
             <td>{{ item.quantity }}</td>
-            <td>{{ item.price|floatformat:0 }}</td>
-            <td class="fw-semibold">{{ item.total_price|floatformat:0 }}</td>
+            <td>{{ item.price|money }}</td>
+            <td class="fw-semibold">{{ item.total_price|money }}</td>
           </tr>
           {% endfor %}
         </tbody>
         <tfoot>
           <tr class="table-light">
             <td colspan="4" class="text-end fw-bold">Итого:</td>
-            <td class="fw-bold">{{ order.total|floatformat:0 }} сум</td>
+            <td class="fw-bold">{{ order.total|money }} сум</td>
           </tr>
         </tfoot>
       </table>
@@ -41,7 +41,7 @@
           <span class="text-muted small">{{ payment.created_at|date:"d.m.Y H:i" }}</span>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <span class="fw-semibold">{{ payment.amount_sum|floatformat:0 }} сум</span>
+          <span class="fw-semibold">{{ payment.amount_sum|money }} сум</span>
           <span class="badge-status status-{{ payment.status }}">{{ payment.get_status_display }}</span>
         </div>
       </div>

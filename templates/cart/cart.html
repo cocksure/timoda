@@ -11,20 +11,19 @@
       {% include 'cart/partials/cart_table.html' %}
     </div>
     <div class="col-lg-4">
-      <div class="cart-summary-card">
+      <div class="cart-summary-card sticky-top" style="top: 104px;">
         <h5 class="mb-3">Итого</h5>
         <div class="d-flex justify-content-between mb-2">
           <span class="text-muted">Товары</span>
-          <span>{{ cart.get_total_price|floatformat:0 }} сум</span>
+          <span id="cart-subtotal">{{ cart.get_total_price|money }} сум</span>
         </div>
         <div class="d-flex justify-content-between mb-2">
           <span class="text-muted">Доставка</span>
           <span>Бесплатно</span>
         </div>
-        <hr>
-        <div class="d-flex justify-content-between mb-4">
-          <span class="fw-semibold">К оплате</span>
-          <span class="fw-bold fs-5">{{ cart.get_total_price|floatformat:0 }} сум</span>
+        <div class="checkout-total-row d-flex justify-content-between align-items-center mb-4">
+          <span class="total-label">К оплате</span>
+          <span class="total-amount" id="cart-total">{{ cart.get_total_price|money }} <span style="font-size:.8em;font-weight:500;opacity:.7">сум</span></span>
         </div>
         <a href="{% url 'orders:checkout' %}" class="btn btn-dark w-100 btn-lg">
           Оформить заказ <i class="bi bi-arrow-right ms-1"></i>

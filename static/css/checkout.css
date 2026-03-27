@@ -1,0 +1,56 @@
+/* ============================================================
+   Checkout page styles
+   ============================================================ */
+
+/* Delivery method */
+.delivery-methods { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
+.delivery-option { flex: 1; min-width: 160px; cursor: pointer; display: flex; }
+.delivery-card {
+  display: flex; align-items: center; gap: 12px;
+  border: 2px solid #E5E0D8; border-radius: 8px;
+  padding: 14px 16px; width: 100%;
+  transition: border-color .2s, background .2s;
+}
+.delivery-option.active .delivery-card { border-color: #1A1A1A; background: #fafaf7; }
+.delivery-icon { font-size: 1.5rem; color: #3E2C1A; }
+
+/* Pickup points */
+.pickup-points-list { display: flex; flex-direction: column; gap: 8px; }
+.pickup-point-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  border: 2px solid #E5E0D8; border-radius: 8px;
+  padding: 12px 14px; cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.pickup-point-item:hover { border-color: #C4A882; }
+.pickup-point-radio { font-size: 1.1rem; margin-top: 2px; flex-shrink: 0; }
+
+/* Courier address map */
+#deliveryMap { height: 320px; border-radius: 8px; border: 1px solid #E5E0D8; z-index: 0; }
+#mapContainer { display: none; margin-bottom: 1rem; }
+.map-search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.map-search-row input { flex: 1; }
+.map-pin-info { font-size: 12px; color: #7A7068; margin-top: 6px; display: flex; align-items: center; gap: 5px; }
+#toggleMapBtn.active { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
+.map-filled-badge { display: none; font-size: 11px; color: #2e7d32; align-items: center; gap: 4px; margin-left: 8px; }
+.map-filled-badge.show { display: inline-flex; }
+
+/* Pickup tabs */
+.pickup-tabs { display: flex; gap: 0; border: 2px solid #E5E0D8; border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+.pickup-tab-btn {
+  flex: 1; padding: 9px 0; background: #fff; border: none; cursor: pointer;
+  font-size: 14px; font-weight: 500; color: #7A7068;
+  transition: background .18s, color .18s;
+}
+.pickup-tab-btn + .pickup-tab-btn { border-left: 2px solid #E5E0D8; }
+.pickup-tab-btn.active { background: #1A1A1A; color: #fff; }
+.pickup-tab-pane { display: none; }
+.pickup-tab-pane.active { display: block; }
+#pickupMapFull { height: 340px; border-radius: 8px; border: 1px solid #E5E0D8; z-index: 0; }
+.timoda-map-marker {
+  width: 40px; height: 40px; border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg); background: #1A1A1A;
+  border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.timoda-map-marker img { width: 26px; height: 26px; object-fit: contain; transform: rotate(45deg); filter: invert(1); }

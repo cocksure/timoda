@@ -1,10 +1,14 @@
 {% if cart %}
+<!-- OOB: update summary totals in sync with cart items -->
+<span id="cart-subtotal" hx-swap-oob="true">{{ cart.get_total_price|money }} сум</span>
+<span class="total-amount" id="cart-total" hx-swap-oob="true">{{ cart.get_total_price|money }} <span style="font-size:.8em;font-weight:500;opacity:.7">сум</span></span>
+
 <div class="cart-items" id="cart-items">
   {% for item in cart %}
   <div class="cart-item d-flex gap-3 py-3 border-bottom">
     <div class="cart-item-img">
       {% if item.variant.product.primary_image %}
-      <img src="{{ item.variant.product.primary_image.image.url }}" alt="{{ item.variant.product.name }}">
+      <img src="{{ item.variant.product.primary_image.image.url }}" alt="{{ item.variant.product.name }}" loading="lazy">
       {% else %}
       <div class="cart-item-img-placeholder"><i class="bi bi-image"></i></div>
       {% endif %}
@@ -24,7 +28,7 @@
           <span class="qty-display mx-2">{{ item.quantity }}</span>
           <button type="submit" class="qty-btn-sm" name="quantity" value="{{ item.quantity|add:'1' }}">+</button>
         </form>
-        <span class="fw-semibold">{{ item.total_price|floatformat:0 }} сум</span>
+        <span class="cart-item-price">{{ item.total_price|money }} <span class="text-muted" style="font-weight:400;font-size:.85em">сум</span></span>
         <form hx-post="{% url 'cart:remove' item.variant.id %}"
               hx-target="#cart-items"
               hx-swap="outerHTML">

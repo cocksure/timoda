@@ -1,5 +1,5 @@
 {% load static %}
-{% with first_variant=product.variants.first %}
+{% with first_variant=product.variants.all|first %}
 <div class="{% if rail %}rail-item{% else %}col-6 col-md-4 col-xl-3{% endif %}">
   <div class="product-card {% if dark %}product-card-dark{% endif %}">
     <a href="{% url 'products:detail' product.slug %}" class="product-card-img-link">
@@ -35,7 +35,7 @@
         </div>
         {% endif %}
         {% with imgs=product.images.all %}
-        {% if imgs.count > 1 %}
+        {% if imgs|length > 1 %}
         <button class="card-nav-btn card-nav-prev" type="button" aria-label="Предыдущее фото">
           <i class="bi bi-chevron-left"></i>
         </button>
@@ -69,10 +69,10 @@
       {% endif %}
       <div class="product-card-price">
         {% if product.sale_price %}
-        <span class="price-sale">{{ product.sale_price|floatformat:0 }} сум</span>
-        <span class="price-original">{{ product.price|floatformat:0 }} сум</span>
+        <span class="price-sale">{{ product.sale_price|money }} сум</span>
+        <span class="price-original">{{ product.price|money }} сум</span>
         {% else %}
-        <span class="price-current">{{ product.price|floatformat:0 }} сум</span>
+        <span class="price-current">{{ product.price|money }} сум</span>
         {% endif %}
       </div>
     </div>

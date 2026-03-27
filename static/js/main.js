@@ -58,7 +58,7 @@ function initRailAutoScroll() {
   });
 }
 
-// Cart toast notification (called by HTMX hx-on::after-request)
+// Cart toast notification
 function showCartToast(productName) {
   const toastEl = document.getElementById('cartToast');
   if (!toastEl) return;
@@ -66,6 +66,42 @@ function showCartToast(productName) {
   if (msg && productName) msg.textContent = `«${productName}» добавлен в корзину`;
   const toast = bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 2500 });
   toast.show();
+}
+
+// Called after successful cart add on product detail page
+function onCartAdded(evt, productName, cartUrl) {
+  if (!evt.detail.successful) return;
+
+  // 1. Toast
+  showCartToast(productName);
+
+  // Update local cart state so variant selector works correctly
+  if (window.CART_VARIANT_IDS && window.getVariantId) {
+    const vid = window.getVariantId();
+    if (vid) window.CART_VARIANT_IDS.add(vid);
+  }
+
+  // 2. Button → "Перейти в корзину"
+  const btn = document.getElementById('add-cart-btn');
+  if (btn) {
+    btn.type = 'button';
+    btn.classList.add('btn-in-cart');
+    btn.innerHTML = '<i class="bi bi-bag-check me-2"></i>Перейти в корзину';
+    btn.onclick = () => { window.location.href = cartUrl; };
+    // Prevent form submit while in "in-cart" state
+    btn.closest('form')?.addEventListener('submit', e => e.preventDefault(), { once: false });
+  }
+
+  // 3. Shake cart icon (after HTMX swap the icon is re-rendered)
+  setTimeout(() => {
+    const icon = document.querySelector('.cart-icon-btn i');
+    if (icon) {
+      icon.classList.remove('cart-icon-shake');
+      void icon.offsetWidth; // force reflow so animation restarts
+      icon.classList.add('cart-icon-shake');
+      setTimeout(() => icon.classList.remove('cart-icon-shake'), 600);
+    }
+  }, 80);
 }
 
 // Product card left/right zone navigation
@@ -116,6 +152,11 @@ function initCardNavigation() {
     // readyState is already 'interactive' or 'complete'
     hide();
   }
+
+  // Fix bfcache: when browser restores page via Back button, hide loader immediately
+  window.addEventListener('pageshow', e => {
+    if (e.persisted) hide();
+  });
 
   // Show on link-click navigation
   document.addEventListener('click', e => {

@@ -60,6 +60,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'cart.context_processors.cart',
             ],
+            'builtins': ['products.templatetags.shop_tags'],
         },
     },
 ]

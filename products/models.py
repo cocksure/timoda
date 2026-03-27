@@ -106,19 +106,33 @@ class Product(models.Model):
 
     @property
     def primary_image(self):
-        img = self.images.filter(is_primary=True).first()
-        return img or self.images.first()
+        # Uses prefetch cache when prefetch_related('images') is set on queryset.
+        # Falls back to DB queries only when accessed without prefetch (e.g. detail page).
+        first = primary = None
+        for img in self.images.all():
+            if first is None:
+                first = img
+            if img.is_primary:
+                primary = img
+                break
+        return primary or first
 
     @property
     def avg_rating(self):
-        reviews = self.reviews.filter(is_approved=True)
-        if reviews.exists():
-            return round(sum(r.rating for r in reviews) / reviews.count(), 1)
-        return 0
+        # Uses 'approved_reviews' prefetch attr if available, otherwise hits DB.
+        reviews = getattr(self, 'approved_reviews', None)
+        if reviews is None:
+            reviews = list(self.reviews.filter(is_approved=True))
+        if not reviews:
+            return 0
+        return round(sum(r.rating for r in reviews) / len(reviews), 1)
 
     @property
     def reviews_count(self):
-        return self.reviews.filter(is_approved=True).count()
+        reviews = getattr(self, 'approved_reviews', None)
+        if reviews is None:
+            return self.reviews.filter(is_approved=True).count()
+        return len(reviews)
 
 
 class ProductImage(models.Model):
