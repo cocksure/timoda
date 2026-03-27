@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.conf import settings
+from django.core.cache import cache
 from utils.images import process_image, PRODUCT_IMAGE_MAX, CATEGORY_IMAGE_MAX
 
 
@@ -33,6 +34,11 @@ class Category(models.Model):
             except (ValueError, Exception):
                 pass
         super().save(*args, **kwargs)
+        cache.delete('nav_sections')
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        cache.delete('nav_sections')
 
 
 class Size(models.Model):
@@ -61,8 +67,24 @@ class Color(models.Model):
 
 
 class Product(models.Model):
+    SECTION_WOMEN  = 'women'
+    SECTION_MEN    = 'men'
+    SECTION_KIDS   = 'kids'
+    SECTION_UNISEX = 'unisex'
+    SECTION_CHOICES = [
+        (SECTION_WOMEN,  'Женская'),
+        (SECTION_MEN,    'Мужская'),
+        (SECTION_KIDS,   'Детская'),
+        (SECTION_UNISEX, 'Унисекс'),
+    ]
+
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True, related_name='products'
+    )
+    section = models.CharField(
+        'Раздел', max_length=10,
+        choices=SECTION_CHOICES, default=SECTION_UNISEX,
+        db_index=True
     )
     name = models.CharField('Название', max_length=200)
     slug = models.SlugField(unique=True, max_length=200)

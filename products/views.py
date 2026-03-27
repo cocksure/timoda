@@ -21,6 +21,12 @@ class ReviewForm(django_forms.ModelForm):
         }
 
 
+SECTION_LABELS = {
+    'women': 'Женская', 'men': 'Мужская',
+    'kids': 'Детская', 'unisex': 'Унисекс',
+}
+
+
 def product_list(request):
     approved_reviews_prefetch = Prefetch(
         'reviews',
@@ -28,25 +34,32 @@ def product_list(request):
         to_attr='approved_reviews'
     )
     products = Product.objects.filter(is_active=True).select_related('category').prefetch_related(
-        'images',
-        'variants',
-        approved_reviews_prefetch,
+        'images', 'variants', approved_reviews_prefetch,
     )
-    categories = Category.objects.filter(is_active=True, parent=None)
+    categories = Category.objects.filter(is_active=True).order_by('order', 'name')
 
+    section = request.GET.get('section', '').strip()
     category_slug = request.GET.get('category')
     q = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', '-created_at')
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
     is_sale = request.GET.get('sale')
+    is_new = request.GET.get('is_new')
+    is_featured = request.GET.get('is_featured')
+
+    selected_section_label = ''
+    if section and section in SECTION_LABELS:
+        if section == 'unisex':
+            products = products.filter(section='unisex')
+        else:
+            products = products.filter(section__in=[section, 'unisex'])
+        selected_section_label = SECTION_LABELS[section]
 
     selected_category = None
     if category_slug:
         selected_category = get_object_or_404(Category, slug=category_slug, is_active=True)
-        products = products.filter(
-            Q(category=selected_category) | Q(category__parent=selected_category)
-        )
+        products = products.filter(category=selected_category)
 
     if q:
         products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
@@ -63,6 +76,10 @@ def product_list(request):
             pass
     if is_sale:
         products = products.filter(sale_price__isnull=False)
+    if is_new:
+        products = products.filter(is_new=True)
+    if is_featured:
+        products = products.filter(is_featured=True)
 
     valid_sorts = {'-created_at', 'price', '-price', 'name'}
     if sort in valid_sorts:
@@ -80,6 +97,8 @@ def product_list(request):
         'page_obj': products_page,
         'categories': categories,
         'selected_category': selected_category,
+        'section': section,
+        'selected_section_label': selected_section_label,
         'query': q,
         'sort': sort,
     })
@@ -165,8 +184,8 @@ def add_review(request, slug):
 
 
 def category_list(request):
-    categories = Category.objects.filter(is_active=True, parent=None).prefetch_related('children')
-    return render(request, 'products/categories.html', {'categories': categories})
+    sections = Category.objects.filter(is_active=True, parent=None).prefetch_related('children').order_by('order', 'name')
+    return render(request, 'products/categories.html', {'sections': sections})
 
 
 def get_variant_stock(request, variant_id):

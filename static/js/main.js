@@ -165,6 +165,7 @@ function initCardNavigation() {
     const href = a.getAttribute('href');
     if (!href || href.startsWith('#') || href.startsWith('javascript') || a.target === '_blank') return;
     if (a.hasAttribute('hx-get') || a.hasAttribute('hx-post')) return;
+    if (a.getAttribute('data-bs-toggle') === 'dropdown') return;
     loader.classList.remove('done');
     // Safety: hide after 4s if new page doesn't load (e.g. download link)
     setTimeout(hide, 4000);
@@ -205,10 +206,41 @@ function initScrollReveal() {
   cards.forEach(card => observer.observe(card));
 }
 
+function initDropdownBlur() {
+  const overlay = document.createElement('div');
+  overlay.id = 'dropdown-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:999;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);background:rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:opacity .2s ease';
+  document.body.appendChild(overlay);
+
+  let justShown = false;
+
+  document.querySelectorAll('.navbar .dropdown').forEach(dropdown => {
+    dropdown.addEventListener('show.bs.dropdown', () => {
+      justShown = true;
+      overlay.style.pointerEvents = 'auto';
+      overlay.style.opacity = '1';
+      setTimeout(() => { justShown = false; }, 100);
+    });
+    dropdown.addEventListener('hide.bs.dropdown', () => {
+      if (!justShown) {
+        overlay.style.opacity = '0';
+        overlay.style.pointerEvents = 'none';
+      }
+    });
+  });
+
+  overlay.addEventListener('click', () => {
+    document.querySelectorAll('.navbar .dropdown-menu.show').forEach(menu => {
+      bootstrap.Dropdown.getOrCreateInstance(menu.previousElementSibling)?.hide();
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initCardNavigation();
   initRailAutoScroll();
   initScrollReveal();
+  initDropdownBlur();
 
   // Chrome blocks autoplay unless muted is set programmatically too
   document.querySelectorAll('video[autoplay]').forEach(v => {

@@ -3,11 +3,18 @@
 {% block page_title %}Товары{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <form method="GET" class="d-flex gap-2">
-    <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Поиск по названию..." style="width:260px">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <form method="GET" class="d-flex gap-2 flex-wrap">
+    <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Поиск по названию..." style="width:240px">
+    <select name="section" class="form-select form-select-sm" style="width:160px">
+      <option value="">Все разделы</option>
+      <option value="women" {% if section == 'women' %}selected{% endif %}>Женская</option>
+      <option value="men"   {% if section == 'men'   %}selected{% endif %}>Мужская</option>
+      <option value="kids"  {% if section == 'kids'  %}selected{% endif %}>Детская</option>
+      <option value="unisex"{% if section == 'unisex'%}selected{% endif %}>Унисекс</option>
+    </select>
     <button class="btn btn-sm btn-outline-secondary">Найти</button>
-    {% if q %}<a href="{% url 'dashboard:product_list' %}" class="btn btn-sm btn-outline-danger">✕</a>{% endif %}
+    {% if q or section %}<a href="{% url 'dashboard:product_list' %}" class="btn btn-sm btn-outline-danger">✕</a>{% endif %}
   </form>
   <a href="{% url 'dashboard:product_add' %}" class="btn btn-sm btn-dark">
     <i class="bi bi-plus-lg me-1"></i>Добавить товар
@@ -22,6 +29,7 @@
           <th style="width:60px">Фото</th>
           <th>Название</th>
           <th>Категория</th>
+          <th>Раздел</th>
           <th>Цена</th>
           <th>Варианты</th>
           <th>Статус</th>
@@ -45,6 +53,13 @@
             <p class="mb-0 text-muted small">{{ product.slug }}</p>
           </td>
           <td class="text-muted small">{{ product.category.name|default:"—" }}</td>
+          <td>
+            {% if product.section == 'women' %}<span class="badge bg-pink-subtle text-danger border" style="background:#fce4ec!important;color:#c2185b!important">Женская</span>
+            {% elif product.section == 'men' %}<span class="badge bg-primary-subtle text-primary border">Мужская</span>
+            {% elif product.section == 'kids' %}<span class="badge bg-success-subtle text-success border">Детская</span>
+            {% else %}<span class="badge bg-secondary-subtle text-secondary border">Унисекс</span>
+            {% endif %}
+          </td>
           <td>
             {% if product.sale_price %}
             <span class="text-danger fw-semibold">{{ product.sale_price|money }}</span>
@@ -79,7 +94,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="text-center text-muted py-5">Товары не найдены</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-5">Товары не найдены</td></tr>
         {% endfor %}
       </tbody>
     </table>

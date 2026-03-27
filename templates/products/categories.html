@@ -3,23 +3,77 @@
 
 {% block content %}
 <div class="container py-5">
-  <h1 class="section-title mb-4">Категории</h1>
-  <div class="row g-4">
-    {% for category in categories %}
-    <div class="col-6 col-md-4 col-lg-3">
-      <a href="{% url 'products:list' %}?category={{ category.slug }}" class="category-card-lg">
-        {% if category.image %}
-        <img src="{{ category.image.url }}" alt="{{ category.name }}" class="category-card-lg-img">
-        {% else %}
-        <div class="category-card-lg-placeholder"><i class="bi bi-grid fs-2"></i></div>
+  <h1 class="section-title mb-2">Категории</h1>
+  <p class="text-muted mb-5">Выберите раздел или подкатегорию</p>
+
+  {% for section in sections %}
+  <section class="mb-5">
+    <!-- Section header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <h2 class="h4 mb-0" style="font-family: var(--font-serif);">
+          <a href="{% url 'products:list' %}?category={{ section.slug }}" class="text-decoration-none text-dark hover-brown">
+            {{ section.name }}
+          </a>
+        </h2>
+        {% if section.description %}
+        <p class="text-muted small mb-0 mt-1">{{ section.description }}</p>
         {% endif %}
-        <div class="category-card-lg-body">
-          <h5 class="mb-0">{{ category.name }}</h5>
-          {% if category.description %}<p class="small text-muted mt-1 mb-0">{{ category.description|truncatechars:60 }}</p>{% endif %}
-        </div>
+      </div>
+      <a href="{% url 'products:list' %}?category={{ section.slug }}" class="btn-link-arrow d-none d-md-inline-flex align-items-center gap-1">
+        Все товары <i class="bi bi-arrow-right"></i>
       </a>
     </div>
-    {% endfor %}
-  </div>
+
+    <div class="row g-3">
+      <!-- Section card (full section) -->
+      <div class="col-12 col-md-4">
+        <a href="{% url 'products:list' %}?category={{ section.slug }}" class="category-section-card">
+          {% if section.image %}
+          <img src="{{ section.image.url }}" alt="{{ section.name }}" class="category-section-img" loading="lazy">
+          {% else %}
+          <div class="category-section-placeholder">
+            <i class="bi bi-grid-3x3-gap fs-1"></i>
+          </div>
+          {% endif %}
+          <div class="category-section-overlay">
+            <span class="category-section-label">Все — {{ section.name }}</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Subcategories -->
+      {% if section.children.all %}
+      <div class="col-12 col-md-8">
+        <div class="row g-3">
+          {% for child in section.children.all %}
+          <div class="col-6 col-lg-4">
+            <a href="{% url 'products:list' %}?category={{ child.slug }}" class="category-card-lg h-100">
+              {% if child.image %}
+              <img src="{{ child.image.url }}" alt="{{ child.name }}" class="category-card-lg-img" loading="lazy">
+              {% else %}
+              <div class="category-card-lg-placeholder" style="aspect-ratio:4/3">
+                <i class="bi bi-box-seam fs-2"></i>
+              </div>
+              {% endif %}
+              <div class="category-card-lg-body">
+                <h5 class="mb-0 fs-6">{{ child.name }}</h5>
+                {% if child.description %}
+                <p class="small text-muted mt-1 mb-0">{{ child.description|truncatechars:50 }}</p>
+                {% endif %}
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if not forloop.last %}<hr class="my-5" style="border-color: var(--border);">{% endif %}
+  </section>
+  {% empty %}
+  <p class="text-muted">Категории не добавлены.</p>
+  {% endfor %}
 </div>
 {% endblock %}

@@ -190,25 +190,25 @@
 
         <!-- Accordion: Description -->
         <div class="accordion product-accordion mt-4" id="productAccordion">
-          <div class="accordion-item border-0">
+          <div class="accordion-item">
             <h2 class="accordion-header">
-              <button class="accordion-button px-0" type="button" data-bs-toggle="collapse" data-bs-target="#descCollapse">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#descCollapse">
                 Описание
               </button>
             </h2>
             <div id="descCollapse" class="accordion-collapse collapse show">
-              <div class="accordion-body px-0 text-muted">{{ product.description }}</div>
+              <div class="accordion-body text-muted">{{ product.description }}</div>
             </div>
           </div>
           {% if product.care_instructions %}
-          <div class="accordion-item border-0">
+          <div class="accordion-item">
             <h2 class="accordion-header">
-              <button class="accordion-button collapsed px-0" type="button" data-bs-toggle="collapse" data-bs-target="#careCollapse">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#careCollapse">
                 Уход за изделием
               </button>
             </h2>
             <div id="careCollapse" class="accordion-collapse collapse">
-              <div class="accordion-body px-0 text-muted">{{ product.care_instructions }}</div>
+              <div class="accordion-body text-muted">{{ product.care_instructions }}</div>
             </div>
           </div>
           {% endif %}

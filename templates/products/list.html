@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{% if selected_category %}{{ selected_category.name }} — {% endif %}Каталог — Timoda{% endblock %}
+{% block title %}{% if selected_category %}{{ selected_category.name }}{% elif selected_section_label %}{{ selected_section_label }} одежда{% else %}Каталог{% endif %} — Timoda{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -10,9 +10,14 @@
   <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Главная</a></li>
-      <li class="breadcrumb-item {% if not selected_category %}active{% endif %}">
-        {% if selected_category %}<a href="{% url 'products:list' %}">Каталог</a>{% else %}Каталог{% endif %}
+      <li class="breadcrumb-item {% if not selected_category and not selected_section_label %}active{% endif %}">
+        {% if selected_category or selected_section_label %}<a href="{% url 'products:list' %}">Каталог</a>{% else %}Каталог{% endif %}
       </li>
+      {% if selected_section_label %}
+      <li class="breadcrumb-item {% if not selected_category %}active{% endif %}">
+        {% if selected_category %}<a href="{% url 'products:list' %}?section={{ section }}">{{ selected_section_label }}</a>{% else %}{{ selected_section_label }}{% endif %}
+      </li>
+      {% endif %}
       {% if selected_category %}
       <li class="breadcrumb-item active">{{ selected_category.name }}</li>
       {% endif %}
@@ -23,11 +28,21 @@
     <!-- Sidebar Filters -->
     <div class="col-lg-3 d-none d-lg-block">
       <div class="filter-sidebar">
+        <h6 class="filter-title">Раздел</h6>
+        <ul class="filter-list">
+          <li><a href="{% url 'products:list' %}" class="filter-link {% if not section %}active{% endif %}">Все</a></li>
+          <li><a href="{% url 'products:list' %}?section=women" class="filter-link {% if section == 'women' %}active{% endif %}">Женская</a></li>
+          <li><a href="{% url 'products:list' %}?section=men" class="filter-link {% if section == 'men' %}active{% endif %}">Мужская</a></li>
+          <li><a href="{% url 'products:list' %}?section=kids" class="filter-link {% if section == 'kids' %}active{% endif %}">Детская</a></li>
+          <li><a href="{% url 'products:list' %}?section=unisex" class="filter-link {% if section == 'unisex' %}active{% endif %}">Унисекс</a></li>
+        </ul>
+
+        <hr>
         <h6 class="filter-title">Категории</h6>
         <ul class="filter-list">
-          <li><a href="{% url 'products:list' %}" class="filter-link {% if not selected_category %}active{% endif %}">Все товары</a></li>
+          <li><a href="{% url 'products:list' %}{% if section %}?section={{ section }}{% endif %}" class="filter-link {% if not selected_category %}active{% endif %}">Все категории</a></li>
           {% for cat in categories %}
-          <li><a href="{% url 'products:list' %}?category={{ cat.slug }}" class="filter-link {% if selected_category.slug == cat.slug %}active{% endif %}">{{ cat.name }}</a></li>
+          <li><a href="{% url 'products:list' %}?{% if section %}section={{ section }}&{% endif %}category={{ cat.slug }}" class="filter-link {% if selected_category.slug == cat.slug %}active{% endif %}">{{ cat.name }}</a></li>
           {% endfor %}
         </ul>
 
@@ -38,6 +53,9 @@
               hx-trigger="change"
               hx-target="#product-grid-container"
               hx-include="#filter-form">
+          {% if section %}
+          <input type="hidden" name="section" value="{{ section }}">
+          {% endif %}
           {% if selected_category %}
           <input type="hidden" name="category" value="{{ selected_category.slug }}">
           {% endif %}
@@ -67,22 +85,28 @@
       <!-- Toolbar -->
       <div class="products-toolbar d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <h1 class="products-page-title mb-0">
-          {% if selected_category %}{{ selected_category.name }}{% elif query %}Поиск: «{{ query }}»{% else %}Каталог{% endif %}
+          {% if selected_category %}{{ selected_category.name }}{% elif query %}Поиск: «{{ query }}»{% elif selected_section_label %}{{ selected_section_label }} одежда{% else %}Каталог{% endif %}
         </h1>
         <div class="d-flex align-items-center gap-2">
           <!-- Mobile filter toggle -->
           <button class="btn btn-outline-dark btn-sm d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas">
             <i class="bi bi-sliders me-1"></i>Фильтры
           </button>
-          <select name="sort" class="form-select form-select-sm sort-select"
-                  hx-get="{% url 'products:list' %}"
-                  hx-target="#product-grid-container"
-                  hx-include="#filter-form">
-            <option value="-created_at" {% if sort == '-created_at' %}selected{% endif %}>Новые</option>
-            <option value="price" {% if sort == 'price' %}selected{% endif %}>Сначала дешевле</option>
-            <option value="-price" {% if sort == '-price' %}selected{% endif %}>Сначала дороже</option>
-            <option value="name" {% if sort == 'name' %}selected{% endif %}>По названию</option>
-          </select>
+          <div class="dropdown sort-dropdown">
+            <button class="btn btn-outline-dark btn-sm dropdown-toggle sort-dropdown-btn" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-sort-down me-1"></i>
+              {% if sort == 'price' %}Сначала дешевле
+              {% elif sort == '-price' %}Сначала дороже
+              {% elif sort == 'name' %}По названию
+              {% else %}Новые{% endif %}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
+              <li><a class="dropdown-item {% if sort == '-created_at' %}active{% endif %}" href="?{% if section %}section={{ section }}&{% endif %}{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if query %}q={{ query }}&{% endif %}sort=-created_at">Новые</a></li>
+              <li><a class="dropdown-item {% if sort == 'price' %}active{% endif %}"     href="?{% if section %}section={{ section }}&{% endif %}{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if query %}q={{ query }}&{% endif %}sort=price">Сначала дешевле</a></li>
+              <li><a class="dropdown-item {% if sort == '-price' %}active{% endif %}"    href="?{% if section %}section={{ section }}&{% endif %}{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if query %}q={{ query }}&{% endif %}sort=-price">Сначала дороже</a></li>
+              <li><a class="dropdown-item {% if sort == 'name' %}active{% endif %}"      href="?{% if section %}section={{ section }}&{% endif %}{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if query %}q={{ query }}&{% endif %}sort=name">По названию</a></li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -97,7 +121,7 @@
         <ul class="pagination gap-1">
           {% if page_obj.has_previous %}
           <li class="page-item">
-            <a class="page-link rounded" href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">
+            <a class="page-link rounded" href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}{% if query %}&q={{ query }}{% endif %}{% if section %}&section={{ section }}{% endif %}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">
               <i class="bi bi-chevron-left"></i>
             </a>
           </li>
@@ -109,13 +133,13 @@
             </li>
             {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
             <li class="page-item">
-              <a class="page-link rounded" href="?page={{ num }}&sort={{ sort }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">{{ num }}</a>
+              <a class="page-link rounded" href="?page={{ num }}&sort={{ sort }}{% if query %}&q={{ query }}{% endif %}{% if section %}&section={{ section }}{% endif %}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">{{ num }}</a>
             </li>
             {% endif %}
           {% endfor %}
           {% if page_obj.has_next %}
           <li class="page-item">
-            <a class="page-link rounded" href="?page={{ page_obj.next_page_number }}&sort={{ sort }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">
+            <a class="page-link rounded" href="?page={{ page_obj.next_page_number }}&sort={{ sort }}{% if query %}&q={{ query }}{% endif %}{% if section %}&section={{ section }}{% endif %}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">
               <i class="bi bi-chevron-right"></i>
             </a>
           </li>
@@ -135,11 +159,20 @@
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
   </div>
   <div class="offcanvas-body">
+    <h6 class="filter-title">Раздел</h6>
+    <ul class="filter-list">
+      <li><a href="{% url 'products:list' %}" class="filter-link {% if not section %}active{% endif %}">Все</a></li>
+      <li><a href="{% url 'products:list' %}?section=women" class="filter-link {% if section == 'women' %}active{% endif %}">Женская</a></li>
+      <li><a href="{% url 'products:list' %}?section=men" class="filter-link {% if section == 'men' %}active{% endif %}">Мужская</a></li>
+      <li><a href="{% url 'products:list' %}?section=kids" class="filter-link {% if section == 'kids' %}active{% endif %}">Детская</a></li>
+      <li><a href="{% url 'products:list' %}?section=unisex" class="filter-link {% if section == 'unisex' %}active{% endif %}">Унисекс</a></li>
+    </ul>
+    <hr>
     <h6 class="filter-title">Категории</h6>
     <ul class="filter-list">
-      <li><a href="{% url 'products:list' %}" class="filter-link">Все товары</a></li>
+      <li><a href="{% url 'products:list' %}{% if section %}?section={{ section }}{% endif %}" class="filter-link {% if not selected_category %}active{% endif %}">Все категории</a></li>
       {% for cat in categories %}
-      <li><a href="{% url 'products:list' %}?category={{ cat.slug }}" class="filter-link">{{ cat.name }}</a></li>
+      <li><a href="{% url 'products:list' %}?{% if section %}section={{ section }}&{% endif %}category={{ cat.slug }}" class="filter-link {% if selected_category.slug == cat.slug %}active{% endif %}">{{ cat.name }}</a></li>
       {% endfor %}
     </ul>
   </div>

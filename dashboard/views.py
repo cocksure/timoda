@@ -27,7 +27,7 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            'category', 'name', 'slug', 'description', 'composition',
+            'category', 'section', 'name', 'slug', 'description', 'composition',
             'care_instructions', 'price', 'sale_price',
             'is_featured', 'is_new', 'is_active',
         ]
@@ -82,10 +82,15 @@ def home(request):
 @dashboard_view
 def product_list(request):
     q = request.GET.get('q', '')
+    section = request.GET.get('section', '')
     products = Product.objects.select_related('category').prefetch_related('images', 'variants')
     if q:
         products = products.filter(name__icontains=q)
-    return render(request, 'dashboard/products/list.html', {'products': products, 'q': q})
+    if section:
+        products = products.filter(section=section)
+    return render(request, 'dashboard/products/list.html', {
+        'products': products, 'q': q, 'section': section,
+    })
 
 
 @dashboard_view

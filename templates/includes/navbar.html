@@ -41,7 +41,39 @@
 
       <div class="collapse navbar-collapse" id="navbarMain">
         <ul class="navbar-nav mx-auto gap-lg-1">
-          <li class="nav-item"><a class="nav-link" href="{% url 'products:list' %}">Каталог</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="{% url 'products:list' %}?section=women" role="button" data-bs-toggle="dropdown">Женская</a>
+            <ul class="dropdown-menu border-0 shadow-sm">
+              <li><a class="dropdown-item fw-semibold" href="{% url 'products:list' %}?section=women">Все — Женская</a></li>
+              <li><hr class="dropdown-divider my-1"></li>
+              {% for cat in nav_sections %}
+              <li><a class="dropdown-item" href="{% url 'products:list' %}?section=women&category={{ cat.slug }}">{{ cat.name }}</a></li>
+              {% endfor %}
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="{% url 'products:list' %}?section=men" role="button" data-bs-toggle="dropdown">Мужская</a>
+            <ul class="dropdown-menu border-0 shadow-sm">
+              <li><a class="dropdown-item fw-semibold" href="{% url 'products:list' %}?section=men">Все — Мужская</a></li>
+              <li><hr class="dropdown-divider my-1"></li>
+              {% for cat in nav_sections %}
+              <li><a class="dropdown-item" href="{% url 'products:list' %}?section=men&category={{ cat.slug }}">{{ cat.name }}</a></li>
+              {% endfor %}
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="{% url 'products:list' %}?section=kids" role="button" data-bs-toggle="dropdown">Детская</a>
+            <ul class="dropdown-menu border-0 shadow-sm">
+              <li><a class="dropdown-item fw-semibold" href="{% url 'products:list' %}?section=kids">Все — Детская</a></li>
+              <li><hr class="dropdown-divider my-1"></li>
+              {% for cat in nav_sections %}
+              <li><a class="dropdown-item" href="{% url 'products:list' %}?section=kids&category={{ cat.slug }}">{{ cat.name }}</a></li>
+              {% endfor %}
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'products:list' %}">Каталог</a>
+          </li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Коллекции</a>
             <ul class="dropdown-menu border-0 shadow-sm">
@@ -51,7 +83,6 @@
               <li><a class="dropdown-item" href="{% url 'products:list' %}?is_featured=true">Хиты продаж</a></li>
             </ul>
           </li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'products:categories' %}">Категории</a></li>
         </ul>
 
         <!-- Desktop search + cart -->

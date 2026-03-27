@@ -36,14 +36,14 @@ class ProductVariantInline(admin.TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category', 'price', 'sale_price', 'is_featured', 'is_new', 'is_active', 'created_at']
-    list_filter = ['is_active', 'is_featured', 'is_new', 'category']
+    list_display = ['name', 'category', 'section', 'price', 'sale_price', 'is_featured', 'is_new', 'is_active', 'created_at']
+    list_filter = ['is_active', 'is_featured', 'is_new', 'section', 'category']
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
-    list_editable = ['is_featured', 'is_new', 'is_active']
+    list_editable = ['section', 'is_featured', 'is_new', 'is_active']
     inlines = [ProductImageInline, ProductVariantInline]
     fieldsets = (
-        ('Основное', {'fields': ('category', 'name', 'slug', 'description', 'composition', 'care_instructions')}),
+        ('Основное', {'fields': ('category', 'section', 'name', 'slug', 'description', 'composition', 'care_instructions')}),
         ('Цены', {'fields': ('price', 'sale_price')}),
         ('Настройки', {'fields': ('is_featured', 'is_new', 'is_active')}),
         ('SEO', {'fields': ('meta_title', 'meta_description'), 'classes': ('collapse',)}),
