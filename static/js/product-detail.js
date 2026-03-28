@@ -117,23 +117,21 @@ document.getElementById('add-to-cart-form')?.addEventListener('submit', async fu
       btn.classList.add('btn-in-cart');
       btn.innerHTML = '<i class="bi bi-bag-check me-2"></i>Перейти в корзину';
       btn.onclick = () => { window.location.href = window.CART_URL; };
-      showCartToast(this.dataset.productName);
-      setTimeout(() => {
-        const icon = document.querySelector('.cart-icon-btn i');
-        if (icon) {
-          icon.classList.remove('cart-icon-shake');
-          void icon.offsetWidth;
-          icon.classList.add('cart-icon-shake');
-          setTimeout(() => icon.classList.remove('cart-icon-shake'), 600);
-        }
-      }, 80);
+      // Button success effect
+      btn.classList.add('btn-added-success');
+      setTimeout(() => btn.classList.remove('btn-added-success'), 600);
+
+      // Update mobile cart badge
+      const mobileBadge = document.querySelector('.mob-cart-badge');
+      if (mobileBadge) {
+        mobileBadge.textContent = parseInt(mobileBadge.textContent || '0') + 1;
+      }
     } else {
       btn.disabled = false;
-      this.submit();
     }
-  } catch {
+  } catch (err) {
+    console.error('Cart add error:', err);
     btn.disabled = false;
-    this.submit();
   }
 });
 

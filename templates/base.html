@@ -66,6 +66,10 @@
     <i class="bi bi-grid{% if request.resolver_match.url_name == 'list' %}-fill{% endif %}"></i>
     <span>Каталог</span>
   </a>
+  <a href="{% url 'products:favorites' %}" class="mob-nav-item {% if request.resolver_match.url_name == 'favorites' %}active{% endif %}">
+    <i class="bi bi-heart{% if request.resolver_match.url_name == 'favorites' %}-fill{% endif %}"></i>
+    <span>Избранное</span>
+  </a>
   <a href="{% url 'cart:detail' %}" class="mob-nav-item position-relative {% if request.resolver_match.url_name == 'detail' and request.resolver_match.app_name == 'cart' %}active{% endif %}">
     <i class="bi bi-bag{% if request.resolver_match.url_name == 'detail' and request.resolver_match.app_name == 'cart' %}-fill{% endif %}"></i>
     {% if cart|length > 0 %}<span class="mob-cart-badge">{{ cart|length }}</span>{% endif %}
@@ -77,23 +81,14 @@
   </a>
 </nav>
 
-<!-- Cart Toast — sits above bottom nav on mobile -->
-<div class="toast-container position-fixed end-0 p-3" style="z-index:9999;bottom:calc(64px + env(safe-area-inset-bottom))">
-  <div id="cartToast" class="toast align-items-center border-0" role="alert">
-    <div class="d-flex">
-      <div class="toast-body">
-        <i class="bi bi-bag-check-fill text-success me-2"></i>
-        <span id="cartToastMsg">Товар добавлен в корзину</span>
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-    </div>
-  </div>
-</div>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- HTMX -->
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script>document.body.addEventListener('htmx:configRequest', function(e) {
+  e.detail.headers['X-CSRFToken'] = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+});</script>
 <script src="{% static 'js/main.js' %}"></script>
 
 {% block extra_js %}{% endblock %}

@@ -26,7 +26,7 @@ function initRailAutoScroll() {
       rail.appendChild(clone);
     });
 
-    const speed = 0.45; // px per frame — slow, like water current
+    const speed = window.innerWidth < 992 ? 0.7 : 0.45;
     let paused = false;
     let origWidth = 0;
 
@@ -58,22 +58,13 @@ function initRailAutoScroll() {
   });
 }
 
-// Cart toast notification
-function showCartToast(productName) {
-  const toastEl = document.getElementById('cartToast');
-  if (!toastEl) return;
-  const msg = document.getElementById('cartToastMsg');
-  if (msg && productName) msg.textContent = `«${productName}» добавлен в корзину`;
-  const toast = bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 2500 });
-  toast.show();
-}
-
 // Called after successful cart add on product detail page
 function onCartAdded(evt, productName, cartUrl) {
   if (!evt.detail.successful) return;
 
-  // 1. Toast
-  showCartToast(productName);
+  // 1. Fly-to-cart effect
+  const img = document.querySelector('.product-gallery-main-img');
+  if (img) flyToCart(img);
 
   // Update local cart state so variant selector works correctly
   if (window.CART_VARIANT_IDS && window.getVariantId) {
@@ -88,20 +79,8 @@ function onCartAdded(evt, productName, cartUrl) {
     btn.classList.add('btn-in-cart');
     btn.innerHTML = '<i class="bi bi-bag-check me-2"></i>Перейти в корзину';
     btn.onclick = () => { window.location.href = cartUrl; };
-    // Prevent form submit while in "in-cart" state
     btn.closest('form')?.addEventListener('submit', e => e.preventDefault(), { once: false });
   }
-
-  // 3. Shake cart icon (after HTMX swap the icon is re-rendered)
-  setTimeout(() => {
-    const icon = document.querySelector('.cart-icon-btn i');
-    if (icon) {
-      icon.classList.remove('cart-icon-shake');
-      void icon.offsetWidth; // force reflow so animation restarts
-      icon.classList.add('cart-icon-shake');
-      setTimeout(() => icon.classList.remove('cart-icon-shake'), 600);
-    }
-  }, 80);
 }
 
 // Product card left/right zone navigation
@@ -236,11 +215,82 @@ function initDropdownBlur() {
   });
 }
 
+// Heart icon pop on favorite toggle
+function initFavEffects() {
+  document.body.addEventListener('htmx:afterSwap', e => {
+    const btn = e.target.closest?.('.btn-fav, .btn-fav-detail') || e.target;
+    if (!btn.classList.contains('btn-fav') && !btn.classList.contains('btn-fav-detail')) return;
+    if (!btn.classList.contains('active')) return;
+
+    // Icon bounce
+    const icon = btn.querySelector('i');
+    if (icon) {
+      icon.classList.remove('animate');
+      void icon.offsetWidth;
+      icon.classList.add('animate');
+      setTimeout(() => icon.classList.remove('animate'), 600);
+    }
+
+    // Button flash ring / bg
+    btn.classList.remove('flash');
+    void btn.offsetWidth;
+    btn.classList.add('flash');
+    setTimeout(() => btn.classList.remove('flash'), 550);
+  });
+
+  // On favorites page: remove card when unfavorited
+  document.body.addEventListener('htmx:afterSwap', e => {
+    const btn = e.target.closest?.('.btn-fav') || e.target;
+    if (!btn.classList.contains('btn-fav')) return;
+    if (btn.classList.contains('active')) return; // added, not removed
+    if (!window.location.pathname.includes('favorites')) return;
+
+    const card = btn.closest('.col-6, .col-md-4, .col-xl-3');
+    if (card) {
+      card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.9)';
+      setTimeout(() => card.remove(), 320);
+    }
+  });
+}
+
+// Quick-add button effect + prevent double-add
+function initQuickAddEffect() {
+  document.body.addEventListener('htmx:afterRequest', e => {
+    const form = e.target.closest?.('.quick-add-form');
+    if (!form || !e.detail.successful) return;
+
+    const btn = form.querySelector('.btn-quick-add');
+    if (!btn || btn.dataset.added) return;
+
+    // Mark as added — prevent further clicks
+    btn.dataset.added = 'true';
+    btn.innerHTML = '<i class="bi bi-bag-check-fill"></i>';
+    btn.classList.add('btn-quick-added');
+    btn.disabled = true;
+
+    // Also update mobile cart badge
+    const mobileBadge = document.querySelector('.mob-nav-item .mob-cart-badge');
+    const mobileCartLink = document.querySelector('.mob-nav-item [class*="bi-bag"]')?.closest('a');
+    if (mobileBadge) {
+      mobileBadge.textContent = parseInt(mobileBadge.textContent || '0') + 1;
+    } else if (mobileCartLink) {
+      const badge = document.createElement('span');
+      badge.className = 'mob-cart-badge';
+      badge.textContent = '1';
+      mobileCartLink.appendChild(badge);
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initCardNavigation();
   initRailAutoScroll();
   initScrollReveal();
   initDropdownBlur();
+  initFavEffects();
+  initQuickAddEffect();
 
   // Chrome blocks autoplay unless muted is set programmatically too
   document.querySelectorAll('video[autoplay]').forEach(v => {
@@ -273,6 +323,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
       new bootstrap.Tooltip(el);
     });
+  });
+
+  // After review submitted via HTMX, reload to show the new review
+  document.body.addEventListener('htmx:afterSwap', e => {
+    if (e.target.closest('.review-form-card')) {
+      setTimeout(() => location.reload(), 1200);
+    }
   });
 
   // HTMX error fallback: if request fails, do a regular redirect to cart

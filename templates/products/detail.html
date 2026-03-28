@@ -167,10 +167,21 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-add-to-cart w-100 mb-3" id="add-cart-btn">
+          <button type="submit" class="btn btn-add-to-cart w-100" id="add-cart-btn">
             <i class="bi bi-bag-plus me-2"></i>Добавить в корзину
           </button>
         </form>
+        {% if user.is_authenticated %}
+        <div class="mt-2 mb-3">
+          <button class="btn btn-fav-detail w-100 {% if is_fav %}active{% endif %}"
+                  hx-post="{% url 'products:favorite_toggle' product.pk %}"
+                  hx-target="this"
+                  hx-swap="outerHTML"
+                  title="{% if is_fav %}Убрать из избранного{% else %}В избранное{% endif %}">
+            <i class="bi bi-heart{% if is_fav %}-fill{% endif %} me-2"></i>{% if is_fav %}В избранном{% else %}В избранное{% endif %}
+          </button>
+        </div>
+        {% endif %}
 
         <!-- Product details -->
         <div class="product-meta mt-4">

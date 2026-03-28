@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.db.models import Prefetch
 from .models import Banner, Subscriber
-from products.models import Product, Category, Review
+from products.models import Product, Category, Review, Favorite
 
 HOME_CACHE_KEY = 'home_page_data'
 HOME_CACHE_TTL = 60 * 15  # 15 минут
@@ -30,6 +30,12 @@ def home(request):
             'categories':   list(Category.objects.filter(is_active=True, parent=None)[:6]),
         }
         cache.set(HOME_CACHE_KEY, ctx, HOME_CACHE_TTL)
+
+    if request.user.is_authenticated:
+        ctx['favorite_ids'] = set(Favorite.objects.filter(user=request.user).values_list('product_id', flat=True))
+    else:
+        ctx['favorite_ids'] = set()
+
     return render(request, 'core/home.html', ctx)
 
 

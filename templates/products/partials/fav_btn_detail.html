@@ -1,0 +1,7 @@
+<button class="btn btn-fav-detail w-100 {% if is_fav %}active{% endif %}"
+        hx-post="{% url 'products:favorite_toggle' product.pk %}"
+        hx-target="this"
+        hx-swap="outerHTML"
+        title="{% if is_fav %}Убрать из избранного{% else %}В избранное{% endif %}">
+  <i class="bi bi-heart{% if is_fav %}-fill{% endif %} me-2"></i>{% if is_fav %}В избранном{% else %}В избранное{% endif %}
+</button>

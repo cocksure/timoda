@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Избранное — Timoda{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Главная</a></li>
+      <li class="breadcrumb-item active">Избранное</li>
+    </ol>
+  </nav>
+
+  <h1 class="page-title mb-4">Избранное</h1>
+
+  {% if products %}
+  <div class="row g-3">
+    {% for product in products %}
+      {% include 'products/partials/product_card.html' with favorite_ids=favorite_ids %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-heart fs-1 text-muted"></i>
+    <p class="text-muted mt-3">Здесь пока пусто</p>
+    <a href="{% url 'products:list' %}" class="btn btn-dark">Перейти в каталог</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

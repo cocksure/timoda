@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.db.models import Q, Prefetch
 from django.core.paginator import Paginator
 from django.core.cache import cache
-from .models import Product, Category, Review, ProductVariant
+from .models import Product, Category, Review, ProductVariant, Favorite
 from django import forms as django_forms
 
 PRODUCT_CACHE_TTL = 60 * 15  # 15 минут
@@ -92,6 +92,10 @@ def product_list(request):
     is_htmx = request.headers.get('HX-Request')
     template = 'products/partials/product_grid.html' if is_htmx else 'products/list.html'
 
+    favorite_ids = set()
+    if request.user.is_authenticated:
+        favorite_ids = set(Favorite.objects.filter(user=request.user).values_list('product_id', flat=True))
+
     return render(request, template, {
         'products': products_page,
         'page_obj': products_page,
@@ -101,6 +105,7 @@ def product_list(request):
         'selected_section_label': selected_section_label,
         'query': q,
         'sort': sort,
+        'favorite_ids': favorite_ids,
     })
 
 
@@ -116,7 +121,7 @@ def product_detail(request, slug):
         variants = product.variants.filter(stock__gt=0)
         sizes = sorted(set(v.size for v in product.variants.all()), key=lambda s: s.order)
         colors = list(set(v.color for v in product.variants.all()))
-        reviews = list(product.reviews.filter(is_approved=True))
+        reviews = list(product.reviews.all())
         related = list(Product.objects.filter(
             category=product.category, is_active=True
         ).exclude(pk=product.pk).prefetch_related('images')[:4])
@@ -157,6 +162,10 @@ def product_detail(request, slug):
     from cart.cart import Cart
     cart = Cart(request)
     ctx['cart_variant_ids'] = list({item['variant'].id for item in cart})
+    ctx['is_fav'] = (
+        request.user.is_authenticated
+        and Favorite.objects.filter(user=request.user, product=ctx['product']).exists()
+    )
 
     return render(request, 'products/detail.html', ctx)
 
@@ -176,9 +185,10 @@ def add_review(request, slug):
         review.product = product
         review.user = request.user
         review.save()
-        messages.success(request, 'Спасибо за отзыв! Он появится после проверки.')
+        cache.delete(f'product_detail_{slug}')
         if request.headers.get('HX-Request'):
             return render(request, 'products/partials/review_thanks.html')
+        messages.success(request, 'Спасибо за отзыв!')
 
     return redirect('products:detail', slug=slug)
 
@@ -186,6 +196,38 @@ def add_review(request, slug):
 def category_list(request):
     sections = Category.objects.filter(is_active=True, parent=None).prefetch_related('children').order_by('order', 'name')
     return render(request, 'products/categories.html', {'sections': sections})
+
+
+@login_required
+def favorite_toggle(request, product_id):
+    product = get_object_or_404(Product, pk=product_id, is_active=True)
+    fav, created = Favorite.objects.get_or_create(user=request.user, product=product)
+    if not created:
+        fav.delete()
+    is_fav = created
+
+    if request.headers.get('HX-Request'):
+        referer = request.META.get('HTTP_REFERER', '')
+        if product.slug in referer and 'list' not in referer and 'favorites' not in referer:
+            return render(request, 'products/partials/fav_btn_detail.html', {
+                'product': product, 'is_fav': is_fav,
+            })
+        return render(request, 'products/partials/fav_btn.html', {
+            'product': product, 'is_fav': is_fav,
+        })
+    return redirect(request.META.get('HTTP_REFERER', 'products:list'))
+
+
+@login_required
+def favorite_list(request):
+    fav_products = Product.objects.filter(
+        favorites__user=request.user, is_active=True
+    ).prefetch_related('images', 'variants').select_related('category')
+    favorite_ids = set(fav_products.values_list('pk', flat=True))
+    return render(request, 'products/favorites.html', {
+        'products': fav_products,
+        'favorite_ids': favorite_ids,
+    })
 
 
 def get_variant_stock(request, variant_id):

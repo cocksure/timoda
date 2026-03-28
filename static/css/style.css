@@ -446,6 +446,7 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 /* Quick add button */
 .product-card-actions {
   position: absolute; bottom: 10px; left: 10px; right: 10px;
+  z-index: 3;
   opacity: 0;
   transform: translateY(6px);
   transition: opacity var(--transition), transform var(--transition);
@@ -466,6 +467,91 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
   color: #fff;
   transform: scale(1.07);
   box-shadow: 0 4px 18px rgba(0,0,0,.22);
+}
+
+/* Favorite heart button */
+.btn-fav {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--near-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, color 0.2s ease, background 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+}
+.btn-fav:hover { transform: scale(1.12); background: #fff; }
+.btn-fav.active { color: #e74c3c; }
+.btn-fav.active:hover { color: #c0392b; }
+
+/* Heart pop animation — on the icon itself */
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  12%  { transform: scale(1.6); }
+  28%  { transform: scale(0.85); }
+  44%  { transform: scale(1.3); }
+  65%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.btn-fav i.animate, .btn-fav-detail i.animate {
+  display: inline-block;
+  animation: heartPop 0.55s ease;
+  color: #e74c3c;
+}
+
+/* Heart button flash on add */
+@keyframes favFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(231,76,60,.5); }
+  50%  { box-shadow: 0 0 0 10px rgba(231,76,60,0); }
+  100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); }
+}
+.btn-fav.flash { animation: favFlash 0.5s ease; }
+
+/* Detail fav button flash */
+@keyframes favDetailFlash {
+  0%   { background: #fff; }
+  25%  { background: #fce4ec; }
+  100% { background: #fff; }
+}
+.btn-fav-detail.flash { animation: favDetailFlash 0.5s ease; }
+
+/* Favorite button — detail page */
+.btn-fav-detail {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--near-black);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.btn-fav-detail:hover { border-color: #e74c3c; color: #e74c3c; }
+.btn-fav-detail.active { border-color: #e74c3c; color: #e74c3c; }
+.btn-fav-detail.active:hover { background: #fef0f0; }
+
+/* Quick-add success state */
+@keyframes addedPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.btn-quick-added {
+  background: #2d7a3a !important;
+  color: #fff !important;
+  pointer-events: none;
+  animation: addedPop 0.35s ease;
 }
 
 /* Product card — arrow navigation buttons */
@@ -623,7 +709,7 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 .product-gallery-main-img {
   width: 100%;
   aspect-ratio: 3/4;
-  max-height: 480px;
+  max-height: 600px;
   object-fit: contain;
   background: #fff;
   /* No transition on transform — must follow mouse instantly.
@@ -653,7 +739,7 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 .stock-low  { background: #fff8e1; color: #e65100; }
 .stock-none { background: #ffebee; color: #c62828; }
 .product-gallery-placeholder {
-  width: 100%; aspect-ratio: 3/4; max-height: 480px;
+  width: 100%; aspect-ratio: 3/4; max-height: 600px;
   background: var(--warm-white);
   display: flex; align-items: center; justify-content: center;
 }
@@ -762,6 +848,15 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
   transition: background var(--transition), transform var(--transition);
 }
 .btn-add-to-cart:hover { background: var(--brown); color: #fff; transform: translateY(-1px); }
+@keyframes btnAddedPulse {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.btn-add-to-cart.btn-added-success {
+  animation: btnAddedPulse 0.4s ease;
+  background: #2d7a3a;
+}
 
 .product-meta-item { margin-bottom: 8px; font-size: 13.5px; }
 .meta-label { font-weight: 600; margin-right: 6px; }
@@ -969,7 +1064,7 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 .products-rail {
   display: flex;
   gap: 16px;
-  overflow-x: hidden;
+  overflow-x: auto;
   padding-bottom: 8px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -1138,6 +1233,9 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 
   /* Product cards — 2 per row with comfortable size */
   .row .col-6 .product-card-img-wrap { aspect-ratio: 3/4; }
+
+  /* Show quick-add always on touch (no hover) */
+  .product-card-actions { opacity: 1; transform: translateY(0); }
 
   /* Bigger touch targets */
   .qty-btn-sm { width: 36px; height: 36px; }

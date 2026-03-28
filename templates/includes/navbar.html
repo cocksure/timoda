@@ -100,7 +100,9 @@
             </div>
           </form>
 
-          {% if user.is_authenticated %}
+          {% if user.is_authenticated %}<a href="{% url 'products:favorites' %}" class="icon-btn" title="Избранное">
+            <i class="bi bi-heart"></i>
+          </a>
           <a href="{% url 'accounts:profile' %}" class="icon-btn" title="Профиль">
             <i class="bi bi-person"></i>
           </a>

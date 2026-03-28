@@ -2,8 +2,17 @@
 {% with first_variant=product.variants.all|first %}
 <div class="{% if rail %}rail-item{% else %}col-6 col-md-4 col-xl-3{% endif %}">
   <div class="product-card {% if dark %}product-card-dark{% endif %}">
-    <a href="{% url 'products:detail' product.slug %}" class="product-card-img-link">
-      <div class="product-card-img-wrap">
+    <div class="product-card-img-wrap">
+      {% if user.is_authenticated %}
+      <button class="btn-fav {% if product.pk in favorite_ids %}active{% endif %}"
+              hx-post="{% url 'products:favorite_toggle' product.pk %}"
+              hx-target="this"
+              hx-swap="outerHTML"
+              title="В избранное">
+        <i class="bi bi-heart{% if product.pk in favorite_ids %}-fill{% endif %}"></i>
+      </button>
+      {% endif %}
+      <a href="{% url 'products:detail' product.slug %}" class="product-card-img-link">
         {% if product.primary_image %}
         <img src="{{ product.primary_image.image.url }}"
              alt="{{ product.primary_image.alt_text|default:product.name }}"
@@ -17,41 +26,46 @@
           {% if product.is_new %}<span class="badge-new">Новинка</span>{% endif %}
           {% if product.sale_price %}<span class="badge-sale">-{{ product.discount_percent }}%</span>{% endif %}
         </div>
-        {% if first_variant %}
-        <div class="product-card-actions">
-          <form method="POST"
-                action="{% url 'cart:add' first_variant.id %}"
-                hx-post="{% url 'cart:add' first_variant.id %}"
-                hx-target="#cart-icon-wrap"
-                hx-swap="outerHTML"
-                hx-on::after-request="showCartToast('{{ product.name|escapejs }}')"
-                class="quick-add-form">
-            {% csrf_token %}
-            <input type="hidden" name="quantity" value="1">
-            <button type="submit" class="btn-quick-add" title="В корзину">
-              <i class="bi bi-bag-plus"></i>
-            </button>
-          </form>
-        </div>
-        {% endif %}
-        {% with imgs=product.images.all %}
-        {% if imgs|length > 1 %}
-        <button class="card-nav-btn card-nav-prev" type="button" aria-label="Предыдущее фото">
-          <i class="bi bi-chevron-left"></i>
-        </button>
-        <button class="card-nav-btn card-nav-next" type="button" aria-label="Следующее фото">
-          <i class="bi bi-chevron-right"></i>
-        </button>
-        <div class="card-img-dots">
-          {% for img in imgs %}
-          <span class="card-img-dot {% if forloop.first %}active{% endif %}"
-                data-src="{{ img.image.url }}"></span>
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
+      </a>
+      {% if first_variant %}
+      <div class="product-card-actions">
+        <form method="POST"
+              action="{% url 'cart:add' first_variant.id %}"
+              hx-post="{% url 'cart:add' first_variant.id %}"
+              hx-target="#cart-icon-wrap"
+              hx-swap="outerHTML"
+              class="quick-add-form">
+          {% csrf_token %}
+          <input type="hidden" name="quantity" value="1">
+          {% if product.pk in cart_product_ids %}
+          <button type="submit" class="btn-quick-add btn-quick-added" disabled data-added="true" title="В корзине">
+            <i class="bi bi-bag-check-fill"></i>
+          </button>
+          {% else %}
+          <button type="submit" class="btn-quick-add" title="В корзину">
+            <i class="bi bi-bag-plus"></i>
+          </button>
+          {% endif %}
+        </form>
       </div>
-    </a>
+      {% endif %}
+      {% with imgs=product.images.all %}
+      {% if imgs|length > 1 %}
+      <button class="card-nav-btn card-nav-prev" type="button" aria-label="Предыдущее фото">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <button class="card-nav-btn card-nav-next" type="button" aria-label="Следующее фото">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+      <div class="card-img-dots">
+        {% for img in imgs %}
+        <span class="card-img-dot {% if forloop.first %}active{% endif %}"
+              data-src="{{ img.image.url }}"></span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+    </div>
     <div class="product-card-body">
       {% if product.category %}
       <p class="product-card-category">{{ product.category.name }}</p>

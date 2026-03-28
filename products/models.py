@@ -222,7 +222,7 @@ class Review(models.Model):
     rating = models.PositiveSmallIntegerField('Оценка', choices=RATING_CHOICES)
     title = models.CharField('Заголовок', max_length=200, blank=True)
     comment = models.TextField('Отзыв')
-    is_approved = models.BooleanField('Одобрен', default=False)
+    is_approved = models.BooleanField('Одобрен', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -233,3 +233,18 @@ class Review(models.Model):
 
     def __str__(self):
         return f'{self.user} → {self.product} ({self.rating}★)'
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorites')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='favorites')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+        unique_together = [('user', 'product')]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user} ♥ {self.product}'
