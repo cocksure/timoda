@@ -193,6 +193,44 @@ def add_review(request, slug):
     return redirect('products:detail', slug=slug)
 
 
+def quick_view(request, slug):
+    product = get_object_or_404(
+        Product.objects.prefetch_related('images', 'variants__size', 'variants__color'),
+        slug=slug, is_active=True
+    )
+    sizes = sorted(set(v.size for v in product.variants.all()), key=lambda s: s.order)
+    colors = list(set(v.color for v in product.variants.all()))
+    first_variant = product.variants.first()
+    return render(request, 'products/partials/quick_view.html', {
+        'product': product,
+        'sizes': sizes,
+        'colors': colors,
+        'first_variant': first_variant,
+    })
+
+
+def search_suggest(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse([], safe=False)
+    products = Product.objects.filter(
+        is_active=True
+    ).filter(
+        Q(name__icontains=q) | Q(category__name__icontains=q)
+    ).select_related('category').prefetch_related('images')[:8]
+    results = []
+    for p in products:
+        img = p.primary_image
+        results.append({
+            'name': p.name,
+            'url': f'/products/{p.slug}/',
+            'image': img.image.url if img else '',
+            'price': str(p.current_price),
+            'category': p.category.name if p.category else '',
+        })
+    return JsonResponse(results, safe=False)
+
+
 def category_list(request):
     sections = Category.objects.filter(is_active=True, parent=None).prefetch_related('children').order_by('order', 'name')
     return render(request, 'products/categories.html', {'sections': sections})

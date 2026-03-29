@@ -91,6 +91,22 @@
 });</script>
 <script src="{% static 'js/main.js' %}"></script>
 
+<!-- Quick View Modal -->
+<div class="modal fade" id="quickViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="border-radius:var(--radius-card);border:none;">
+      <div class="modal-body p-4" id="quickViewBody">
+        <div class="text-center py-5"><div class="spinner-border text-muted" role="status"></div></div>
+      </div>
+      <div class="modal-footer border-0 pt-0 px-4 pb-4">
+        <button type="button" class="btn btn-outline-dark w-100" onclick="bootstrap.Modal.getInstance(document.getElementById('quickViewModal')).hide()">
+          Закрыть
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% block extra_js %}{% endblock %}
 </body>
 </html>

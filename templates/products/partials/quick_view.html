@@ -1,0 +1,80 @@
+{% load static %}
+<div class="quick-view-content">
+  <div class="row g-3">
+    <div class="col-5">
+      <div class="qv-gallery">
+        {% if product.primary_image %}
+        <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}" class="qv-main-img" id="qvMainImg">
+        {% endif %}
+        {% if product.images.all|length > 1 %}
+        <div class="qv-thumbs mt-2">
+          {% for img in product.images.all %}
+          <img src="{{ img.image.url }}" alt="" class="qv-thumb {% if forloop.first %}active{% endif %}"
+               onclick="this.parentElement.querySelectorAll('.qv-thumb').forEach(t=>t.classList.remove('active'));this.classList.add('active');document.getElementById('qvMainImg').src=this.src;">
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-7">
+      {% if product.category %}
+      <p class="product-detail-category">{{ product.category.name }}</p>
+      {% endif %}
+      <h4 class="qv-name">{{ product.name }}</h4>
+      <div class="product-detail-price mb-3">
+        {% if product.sale_price %}
+        <span class="price-sale-lg">{{ product.sale_price|money }} сум</span>
+        <span class="price-original-lg">{{ product.price|money }} сум</span>
+        <span class="badge bg-danger ms-2">-{{ product.discount_percent }}%</span>
+        {% else %}
+        <span class="price-current-lg">{{ product.price|money }} сум</span>
+        {% endif %}
+      </div>
+      {% if colors %}
+      <div class="mb-2">
+        <span class="variant-label">Цвет:</span>
+        <div class="color-swatches mt-1">
+          {% for color in colors %}
+          <span class="color-swatch" style="background-color: {{ color.hex_code }};"
+                data-bs-toggle="tooltip" title="{{ color.name }}"></span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% if sizes %}
+      <div class="mb-3">
+        <span class="variant-label">Размеры:</span>
+        <div class="size-buttons mt-1">
+          {% for size in sizes %}
+          <span class="size-btn size-btn-sm">{{ size.name }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% if product.total_stock > 0 and product.total_stock <= 5 %}
+      <div class="mb-2">
+        <span class="stock-badge stock-low"><i class="bi bi-exclamation-circle me-1"></i>Осталось {{ product.total_stock }} шт!</span>
+      </div>
+      {% endif %}
+      <div class="d-flex gap-2 mt-3">
+        {% if first_variant %}
+        <form method="POST"
+              action="{% url 'cart:add' first_variant.id %}"
+              hx-post="{% url 'cart:add' first_variant.id %}"
+              hx-target="#cart-icon-wrap"
+              hx-swap="outerHTML"
+              class="quick-add-form flex-grow-1">
+          {% csrf_token %}
+          <input type="hidden" name="quantity" value="1">
+          <button type="submit" class="btn btn-add-to-cart w-100">
+            <i class="bi bi-bag-plus me-2"></i>В корзину
+          </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'products:detail' product.slug %}" class="btn btn-outline-dark">
+          Подробнее <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

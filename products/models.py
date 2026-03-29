@@ -156,6 +156,10 @@ class Product(models.Model):
             return self.reviews.filter(is_approved=True).count()
         return len(reviews)
 
+    @property
+    def total_stock(self):
+        return sum(v.stock for v in self.variants.all())
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')

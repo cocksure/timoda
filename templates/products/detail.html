@@ -183,6 +183,20 @@
         </div>
         {% endif %}
 
+        <!-- Share -->
+        <div class="product-share mt-3">
+          <span class="text-muted small me-2">Поделиться:</span>
+          <a href="https://t.me/share/url?url={{ request.build_absolute_uri|urlencode }}&text={{ product.name|urlencode }}" target="_blank" rel="noopener" class="share-btn" title="Telegram">
+            <i class="bi bi-telegram"></i>
+          </a>
+          <button class="share-btn" onclick="copyProductLink()" title="Копировать ссылку" id="copyLinkBtn">
+            <i class="bi bi-link-45deg"></i>
+          </button>
+          <a href="https://www.instagram.com/" target="_blank" rel="noopener" class="share-btn" title="Instagram">
+            <i class="bi bi-instagram"></i>
+          </a>
+        </div>
+
         <!-- Product details -->
         <div class="product-meta mt-4">
           {% if product.composition %}
@@ -287,14 +301,24 @@
     </div>
   </section>
 
+  <!-- Recently Viewed -->
+  <section class="recently-viewed mt-5 pt-4 border-top" id="recentlyViewed" style="display:none;">
+    <h2 class="section-title mb-4">Вы недавно смотрели</h2>
+    <div class="products-rail-wrap">
+      <div class="products-rail" id="recentlyViewedRail"></div>
+    </div>
+  </section>
+
   <!-- Related Products -->
   {% if related %}
   <section class="related-products mt-5 pt-4 border-top">
     <h2 class="section-title mb-4">Похожие товары</h2>
-    <div class="row g-3">
-      {% for product in related %}
-      {% include 'products/partials/product_card.html' with product=product %}
-      {% endfor %}
+    <div class="products-rail-wrap">
+      <div class="products-rail">
+        {% for product in related %}
+        {% include 'products/partials/product_card.html' with product=product rail=True %}
+        {% endfor %}
+      </div>
     </div>
   </section>
   {% endif %}

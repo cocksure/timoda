@@ -2,6 +2,77 @@
 // TIMODA — Main JavaScript
 // ============================================================
 
+// Quick View modal
+function openQuickView(url) {
+  const modal = document.getElementById('quickViewModal');
+  const body = document.getElementById('quickViewBody');
+  if (!modal || !body) return;
+
+  // Reset to spinner
+  body.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-muted" role="status"></div></div>';
+
+  // Show modal
+  const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+  bsModal.show();
+
+  // Fetch content
+  fetch(url, { headers: { 'HX-Request': 'true' } })
+    .then(r => r.text())
+    .then(html => {
+      body.innerHTML = html;
+      // Init tooltips inside modal
+      body.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el);
+      });
+      // Handle add-to-cart form inside modal
+      const form = body.querySelector('.quick-add-form');
+      if (form) {
+        form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const btn = form.querySelector('button[type="submit"]');
+          btn.disabled = true;
+          try {
+            const resp = await fetch(form.action, {
+              method: 'POST',
+              body: new FormData(form),
+              headers: { 'HX-Request': 'true' }
+            });
+            if (resp.ok) {
+              const cartHtml = await resp.text();
+              const cartWrap = document.getElementById('cart-icon-wrap');
+              if (cartWrap) cartWrap.outerHTML = cartHtml;
+              btn.innerHTML = '<i class="bi bi-bag-check-fill me-2"></i>В корзине';
+              btn.classList.remove('btn-add-to-cart');
+              btn.classList.add('btn-card-cart-added');
+              btn.style.background = '#2d7a3a';
+              bounceCartBadge();
+            } else {
+              btn.disabled = false;
+            }
+          } catch(err) {
+            btn.disabled = false;
+          }
+        });
+      }
+    })
+    .catch(() => {
+      body.innerHTML = '<p class="text-center text-muted py-4">Ошибка загрузки</p>';
+    });
+}
+
+// Cart badge bounce animation
+function bounceCartBadge() {
+  // Delay slightly — after outerHTML swap the new element needs to be in DOM
+  setTimeout(() => {
+    document.querySelectorAll('.cart-badge, .mob-cart-badge').forEach(badge => {
+      badge.classList.remove('badge-bounce');
+      void badge.offsetWidth;
+      badge.classList.add('badge-bounce');
+      setTimeout(() => badge.classList.remove('badge-bounce'), 600);
+    });
+  }, 50);
+}
+
 // Products rail marquee (manual jump, used by rail buttons)
 function railScroll(btn, dir) {
   const rail = btn.closest('.products-rail-wrap').querySelector('.products-rail');
@@ -215,6 +286,25 @@ function initDropdownBlur() {
   });
 }
 
+// Floating hearts particles
+function spawnHearts(anchor) {
+  const rect = anchor.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  for (let i = 0; i < 6; i++) {
+    const heart = document.createElement('span');
+    heart.textContent = '\u2764';
+    heart.className = 'floating-heart';
+    heart.style.left = cx + 'px';
+    heart.style.top = cy + 'px';
+    heart.style.setProperty('--dx', (Math.random() - 0.5) * 60 + 'px');
+    heart.style.setProperty('--dy', -(30 + Math.random() * 40) + 'px');
+    heart.style.animationDelay = (i * 0.06) + 's';
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 900);
+  }
+}
+
 // Heart icon pop on favorite toggle
 function initFavEffects() {
   document.body.addEventListener('htmx:afterSwap', e => {
@@ -235,7 +325,10 @@ function initFavEffects() {
     btn.classList.remove('flash');
     void btn.offsetWidth;
     btn.classList.add('flash');
-    setTimeout(() => btn.classList.remove('flash'), 550);
+    setTimeout(() => btn.classList.remove('flash'), 650);
+
+    // Floating hearts particles
+    spawnHearts(btn);
   });
 
   // On favorites page: remove card when unfavorited
@@ -261,26 +354,104 @@ function initQuickAddEffect() {
     const form = e.target.closest?.('.quick-add-form');
     if (!form || !e.detail.successful) return;
 
-    const btn = form.querySelector('.btn-quick-add');
+    const btn = form.querySelector('.btn-card-cart, .btn-quick-add');
     if (!btn || btn.dataset.added) return;
 
     // Mark as added — prevent further clicks
     btn.dataset.added = 'true';
-    btn.innerHTML = '<i class="bi bi-bag-check-fill"></i>';
-    btn.classList.add('btn-quick-added');
+    btn.innerHTML = '<i class="bi bi-bag-check-fill me-1"></i>В корзине';
+    btn.classList.add('btn-card-cart-added');
     btn.disabled = true;
+
+    // Bounce cart badge
+    bounceCartBadge();
 
     // Also update mobile cart badge
     const mobileBadge = document.querySelector('.mob-nav-item .mob-cart-badge');
     const mobileCartLink = document.querySelector('.mob-nav-item [class*="bi-bag"]')?.closest('a');
     if (mobileBadge) {
       mobileBadge.textContent = parseInt(mobileBadge.textContent || '0') + 1;
+      mobileBadge.classList.add('badge-bounce');
+      setTimeout(() => mobileBadge.classList.remove('badge-bounce'), 500);
     } else if (mobileCartLink) {
       const badge = document.createElement('span');
-      badge.className = 'mob-cart-badge';
+      badge.className = 'mob-cart-badge badge-bounce';
       badge.textContent = '1';
       mobileCartLink.appendChild(badge);
     }
+  });
+}
+
+// Search autocomplete
+function initSearchAutocomplete() {
+  const pairs = [
+    ['searchInput', 'searchDropdown'],
+    ['searchInputMobile', 'searchDropdownMobile'],
+  ];
+  pairs.forEach(([inputId, dropdownId]) => {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    if (!input || !dropdown) return;
+
+    let timer = null;
+    let activeIdx = -1;
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      if (q.length < 2) { dropdown.innerHTML = ''; dropdown.classList.remove('open'); return; }
+      timer = setTimeout(() => {
+        fetch(`/products/search-suggest/?q=${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(items => {
+            activeIdx = -1;
+            if (!items.length) {
+              dropdown.innerHTML = '<div class="search-no-results">Ничего не найдено</div>';
+              dropdown.classList.add('open');
+              return;
+            }
+            dropdown.innerHTML = items.map((item, i) => `
+              <a href="${item.url}" class="search-item" data-idx="${i}">
+                ${item.image ? `<img src="${item.image}" alt="" class="search-item-img">` : ''}
+                <div class="search-item-info">
+                  <span class="search-item-name">${item.name}</span>
+                  <span class="search-item-meta">${item.category} &middot; ${Number(item.price).toLocaleString('ru')} сум</span>
+                </div>
+              </a>
+            `).join('');
+            dropdown.classList.add('open');
+          });
+      }, 300);
+    });
+
+    // Keyboard navigation
+    input.addEventListener('keydown', e => {
+      const items = dropdown.querySelectorAll('.search-item');
+      if (!items.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIdx = Math.max(activeIdx - 1, 0);
+      } else if (e.key === 'Enter' && activeIdx >= 0) {
+        e.preventDefault();
+        items[activeIdx].click();
+        return;
+      } else if (e.key === 'Escape') {
+        dropdown.innerHTML = ''; dropdown.classList.remove('open');
+        return;
+      } else { return; }
+      items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+      items[activeIdx]?.scrollIntoView({ block: 'nearest' });
+    });
+
+    // Close on click outside
+    document.addEventListener('click', e => {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.innerHTML = ''; dropdown.classList.remove('open');
+      }
+    });
   });
 }
 
@@ -291,6 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDropdownBlur();
   initFavEffects();
   initQuickAddEffect();
+  initSearchAutocomplete();
 
   // Chrome blocks autoplay unless muted is set programmatically too
   document.querySelectorAll('video[autoplay]').forEach(v => {

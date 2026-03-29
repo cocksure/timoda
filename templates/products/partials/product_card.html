@@ -12,6 +12,11 @@
         <i class="bi bi-heart{% if product.pk in favorite_ids %}-fill{% endif %}"></i>
       </button>
       {% endif %}
+      <button class="btn-quick-view" type="button"
+              onclick="openQuickView('{% url 'products:quick_view' product.slug %}')"
+              title="Быстрый просмотр">
+        <i class="bi bi-eye"></i>
+      </button>
       <a href="{% url 'products:detail' product.slug %}" class="product-card-img-link">
         {% if product.primary_image %}
         <img src="{{ product.primary_image.image.url }}"
@@ -22,33 +27,13 @@
           <i class="bi bi-image text-muted"></i>
         </div>
         {% endif %}
-        <div class="product-card-badges">
-          {% if product.is_new %}<span class="badge-new">Новинка</span>{% endif %}
-          {% if product.sale_price %}<span class="badge-sale">-{{ product.discount_percent }}%</span>{% endif %}
-        </div>
       </a>
-      {% if first_variant %}
-      <div class="product-card-actions">
-        <form method="POST"
-              action="{% url 'cart:add' first_variant.id %}"
-              hx-post="{% url 'cart:add' first_variant.id %}"
-              hx-target="#cart-icon-wrap"
-              hx-swap="outerHTML"
-              class="quick-add-form">
-          {% csrf_token %}
-          <input type="hidden" name="quantity" value="1">
-          {% if product.pk in cart_product_ids %}
-          <button type="submit" class="btn-quick-add btn-quick-added" disabled data-added="true" title="В корзине">
-            <i class="bi bi-bag-check-fill"></i>
-          </button>
-          {% else %}
-          <button type="submit" class="btn-quick-add" title="В корзину">
-            <i class="bi bi-bag-plus"></i>
-          </button>
-          {% endif %}
-        </form>
+      <!-- Badges — bottom of image -->
+      <div class="product-card-badges">
+        {% if product.is_new %}<span class="badge-new">Новинка</span>{% endif %}
+        {% if product.sale_price %}<span class="badge-sale">-{{ product.discount_percent }}%</span>{% endif %}
+        {% if product.total_stock > 0 and product.total_stock <= 5 %}<span class="badge-low-stock">Осталось {{ product.total_stock }} шт!</span>{% endif %}
       </div>
-      {% endif %}
       {% with imgs=product.images.all %}
       {% if imgs|length > 1 %}
       <button class="card-nav-btn card-nav-prev" type="button" aria-label="Предыдущее фото">
@@ -89,6 +74,26 @@
         <span class="price-current">{{ product.price|money }} сум</span>
         {% endif %}
       </div>
+      {% if first_variant %}
+      <form method="POST"
+            action="{% url 'cart:add' first_variant.id %}"
+            hx-post="{% url 'cart:add' first_variant.id %}"
+            hx-target="#cart-icon-wrap"
+            hx-swap="outerHTML"
+            class="quick-add-form mt-2">
+        {% csrf_token %}
+        <input type="hidden" name="quantity" value="1">
+        {% if product.pk in cart_product_ids %}
+        <button type="submit" class="btn-card-cart btn-card-cart-added" disabled data-added="true">
+          <i class="bi bi-bag-check-fill me-1"></i>В корзине
+        </button>
+        {% else %}
+        <button type="submit" class="btn-card-cart">
+          <i class="bi bi-bag-plus me-1"></i>В корзину
+        </button>
+        {% endif %}
+      </form>
+      {% endif %}
     </div>
   </div>
 </div>

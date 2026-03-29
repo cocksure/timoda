@@ -121,10 +121,13 @@ document.getElementById('add-to-cart-form')?.addEventListener('submit', async fu
       btn.classList.add('btn-added-success');
       setTimeout(() => btn.classList.remove('btn-added-success'), 600);
 
-      // Update mobile cart badge
+      // Bounce cart badges
+      if (typeof bounceCartBadge === 'function') bounceCartBadge();
       const mobileBadge = document.querySelector('.mob-cart-badge');
       if (mobileBadge) {
         mobileBadge.textContent = parseInt(mobileBadge.textContent || '0') + 1;
+        mobileBadge.classList.add('badge-bounce');
+        setTimeout(() => mobileBadge.classList.remove('badge-bounce'), 500);
       }
     } else {
       btn.disabled = false;
@@ -193,4 +196,73 @@ document.addEventListener('DOMContentLoaded', () => {
       bar.classList.toggle('hidden', entries[0].isIntersecting);
     }, { threshold: 0.1 }).observe(mainBtn);
   }
+
+  // Recently Viewed (localStorage)
+  initRecentlyViewed();
 });
+
+// Copy product link
+function copyProductLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = document.getElementById('copyLinkBtn');
+    btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-link-45deg"></i>';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// Recently Viewed
+function initRecentlyViewed() {
+  const KEY = 'timoda_recently_viewed';
+  const MAX = 12;
+
+  // Current product data from page
+  const mainImg = document.getElementById('mainImage');
+  const nameEl = document.querySelector('.product-detail-name');
+  const priceEl = document.querySelector('.product-detail-price');
+  if (!nameEl) return;
+
+  const current = {
+    slug: window.location.pathname,
+    name: nameEl.textContent.trim(),
+    image: mainImg?.src || '',
+    price: priceEl?.textContent.trim() || '',
+  };
+
+  // Load, update, save
+  let items = JSON.parse(localStorage.getItem(KEY) || '[]');
+  items = items.filter(i => i.slug !== current.slug);
+  items.unshift(current);
+  if (items.length > MAX) items = items.slice(0, MAX);
+  localStorage.setItem(KEY, JSON.stringify(items));
+
+  // Render (skip current product)
+  const others = items.filter(i => i.slug !== current.slug);
+  if (!others.length) return;
+
+  const section = document.getElementById('recentlyViewed');
+  const rail = document.getElementById('recentlyViewedRail');
+  if (!section || !rail) return;
+
+  others.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'rail-item';
+    card.innerHTML = `
+      <div class="product-card">
+        <div class="product-card-img-wrap">
+          <a href="${item.slug}" class="product-card-img-link">
+            <img src="${item.image}" alt="${item.name}" class="product-card-img" loading="lazy">
+          </a>
+        </div>
+        <div class="product-card-body">
+          <h3 class="product-card-name"><a href="${item.slug}">${item.name}</a></h3>
+          <div class="product-card-price">${item.price}</div>
+        </div>
+      </div>`;
+    rail.appendChild(card);
+  });
+  section.style.display = '';
+}
