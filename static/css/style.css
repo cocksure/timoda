@@ -1403,6 +1403,8 @@ h1,h2,h3,h4,h5 { font-family: var(--font-serif); font-weight: 600; }
 .mob-nav-item i { font-size: 21px; line-height: 1; }
 .mob-nav-item.active { color: var(--dark-brown); }
 .mob-nav-item:hover { color: var(--brown); }
+.mob-theme-toggle { color: var(--brown) !important; }
+.mob-theme-toggle:hover { color: var(--dark-brown) !important; }
 .mob-cart-badge {
   position: absolute;
   top: 5px;

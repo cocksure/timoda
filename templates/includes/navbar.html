@@ -29,14 +29,6 @@
         <button class="icon-btn mobile-search-toggle" data-bs-toggle="collapse" data-bs-target="#mobileSearch" style="width:40px;height:40px">
           <i class="bi bi-search"></i>
         </button>
-        <span id="cart-icon-wrap-mobile">
-          <a href="{% url 'cart:detail' %}" class="icon-btn cart-icon-btn position-relative" style="width:40px;height:40px">
-            <i class="bi bi-bag"></i>
-            {% if cart|length > 0 %}
-            <span class="cart-badge">{{ cart|length }}</span>
-            {% endif %}
-          </a>
-        </span>
       </div>
 
       <div class="collapse navbar-collapse" id="navbarMain">

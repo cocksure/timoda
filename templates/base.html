@@ -83,6 +83,10 @@
     {% if cart|length > 0 %}<span class="mob-cart-badge">{{ cart|length }}</span>{% endif %}
     <span>Корзина</span>
   </a>
+  <button type="button" class="mob-nav-item mob-theme-toggle" onclick="toggleTheme()" style="background:none;border:none;cursor:pointer;">
+    <i class="bi bi-moon" id="themeIconMobile"></i>
+    <span>Тема</span>
+  </button>
   <a href="{% if user.is_authenticated %}{% url 'accounts:profile' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="mob-nav-item">
     <i class="bi bi-person{% if user.is_authenticated %}-fill{% endif %}"></i>
     <span>{% if user.is_authenticated %}Профиль{% else %}Войти{% endif %}</span>
