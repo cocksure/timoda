@@ -21,7 +21,7 @@
     <div class="container">
       <!-- Logo -->
       <a class="navbar-brand logo" href="{% url 'core:home' %}">
-        <img src="{% static 'img/TimodaLogo.png' %}" alt="Timoda" height="28">
+        <img src="{% static 'img/TimodaLogo.png' %}" alt="Timoda" height="28" class="nav-logo">
       </a>
 
       <!-- Mobile icons (bottom nav handles main nav) -->
@@ -114,6 +114,10 @@
               {% endif %}
             </a>
           </span>
+
+          <button class="icon-btn theme-toggle-nav" onclick="toggleTheme()" title="Сменить тему" type="button">
+            <i class="bi bi-moon" id="themeIconDesktop"></i>
+          </button>
         </div>
       </div>
     </div>

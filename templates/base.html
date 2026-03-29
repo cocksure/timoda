@@ -1,6 +1,14 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="ru">
+<script>
+(function(){
+  var t=localStorage.getItem('timoda_theme');
+  var s=localStorage.getItem('timoda_scale');
+  if(t)document.documentElement.setAttribute('data-theme',t);
+  if(s)document.documentElement.setAttribute('data-scale',s);
+})();
+</script>
 <head>
 <link rel="icon" type="image/png" href="{% static 'img/TimodaLogo.png' %}">
 <link rel="apple-touch-icon" href="{% static 'img/TimodaLogo.png' %}">

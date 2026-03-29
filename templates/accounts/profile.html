@@ -47,6 +47,32 @@
         </form>
       </div>
 
+      <!-- Settings -->
+      <div class="profile-content-card mt-4">
+        <h4 class="mb-4">Настройки</h4>
+        <div class="row g-4">
+          <div class="col-md-6">
+            <label class="variant-label d-block mb-2">Тема</label>
+            <div class="theme-toggle-group">
+              <button class="theme-btn active" data-theme="light" onclick="setTheme('light')">
+                <i class="bi bi-sun me-1"></i>Светлая
+              </button>
+              <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">
+                <i class="bi bi-moon me-1"></i>Тёмная
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="variant-label d-block mb-2">Масштаб</label>
+            <div class="theme-toggle-group">
+              <button class="scale-btn" data-scale="compact" onclick="setScale('compact')">Компактный</button>
+              <button class="scale-btn active" data-scale="medium" onclick="setScale('medium')">Средний</button>
+              <button class="scale-btn" data-scale="large" onclick="setScale('large')">Крупный</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {% if orders %}
       <div class="profile-content-card mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3">

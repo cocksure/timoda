@@ -60,6 +60,50 @@ function openQuickView(url) {
     });
 }
 
+// Theme & Scale settings
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('timoda_theme', theme);
+  document.querySelectorAll('.theme-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+  updateThemeIcons(theme);
+}
+
+function toggleTheme() {
+  const current = localStorage.getItem('timoda_theme') || 'light';
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+function updateThemeIcons(theme) {
+  document.querySelectorAll('#themeIconDesktop, #themeIconMobile').forEach(icon => {
+    if (icon) {
+      icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+    }
+  });
+}
+
+function setScale(scale) {
+  document.documentElement.setAttribute('data-scale', scale);
+  localStorage.setItem('timoda_scale', scale);
+  document.querySelectorAll('.scale-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.scale === scale);
+  });
+}
+
+// Sync settings buttons & icons on page load
+function initSettingsButtons() {
+  const theme = localStorage.getItem('timoda_theme') || 'light';
+  const scale = localStorage.getItem('timoda_scale') || 'medium';
+  document.querySelectorAll('.theme-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+  document.querySelectorAll('.scale-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.scale === scale);
+  });
+  updateThemeIcons(theme);
+}
+
 // Cart badge bounce animation
 function bounceCartBadge() {
   // Delay slightly — after outerHTML swap the new element needs to be in DOM
@@ -350,11 +394,11 @@ function initFavEffects() {
 
 // Quick-add button effect + prevent double-add
 function initQuickAddEffect() {
-  document.body.addEventListener('htmx:afterRequest', e => {
-    const form = e.target.closest?.('.quick-add-form');
-    if (!form || !e.detail.successful) return;
+  document.body.addEventListener('htmx:afterOnLoad', e => {
+    const elt = e.detail.elt;
+    if (!elt || !elt.classList?.contains('quick-add-form')) return;
 
-    const btn = form.querySelector('.btn-card-cart, .btn-quick-add');
+    const btn = elt.querySelector('.btn-card-cart, .btn-quick-add');
     if (!btn || btn.dataset.added) return;
 
     // Mark as added — prevent further clicks
@@ -463,6 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFavEffects();
   initQuickAddEffect();
   initSearchAutocomplete();
+  initSettingsButtons();
 
   // Chrome blocks autoplay unless muted is set programmatically too
   document.querySelectorAll('video[autoplay]').forEach(v => {

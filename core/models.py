@@ -39,7 +39,8 @@ class Banner(models.Model):
 
         for field_name in ('image', 'image_mobile'):
             field = getattr(self, field_name)
-            if field and hasattr(field, 'file'):
+            # Only process newly uploaded files (not already saved ones)
+            if field and hasattr(field.file, 'content_type'):
                 try:
                     path, content = process_image(field, 'banners/', max_size=BANNER_IMAGE_MAX)
                     field.save(path, content, save=False)
