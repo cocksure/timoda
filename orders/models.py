@@ -91,10 +91,15 @@ class Order(models.Model):
     def __str__(self):
         return f'Заказ #{self.order_number}'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_status = self.status
+
     def save(self, *args, **kwargs):
         if not self.order_number:
             self.order_number = generate_order_number()
         super().save(*args, **kwargs)
+        self._original_status = self.status
 
 
 class OrderItem(models.Model):

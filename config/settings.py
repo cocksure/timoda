@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'core',
     'payments',
     'dashboard',
+    'tgbot',
 ]
 
 MIDDLEWARE = [
@@ -182,6 +183,11 @@ ESKIZ_CLIENT_ID = env('ESKIZ_CLIENT_ID', default='')
 # OTP settings
 OTP_EXPIRY_MINUTES = 5
 OTP_MAX_ATTEMPTS = 3
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='')
+TELEGRAM_ADMIN_CHAT_ID = env('TELEGRAM_ADMIN_CHAT_ID', default='')
+TELEGRAM_WEBAPP_URL = env('TELEGRAM_WEBAPP_URL', default=SITE_URL)
 
 # ── CSRF ──────────────────────────────────────────────────────
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[

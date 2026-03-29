@@ -11,6 +11,7 @@ class CustomUserAdmin(UserAdmin):
     ordering = ['-date_joined']
     fieldsets = UserAdmin.fieldsets + (
         ('Доп. информация', {'fields': ('phone', 'birth_date', 'avatar')}),
+        ('Telegram', {'fields': ('telegram_id', 'telegram_username')}),
     )
 
 

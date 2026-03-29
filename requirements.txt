@@ -12,3 +12,4 @@ psycopg2-binary==2.9.10
 whitenoise==6.9.0
 requests
 django-redis==6.0.0
+python-telegram-bot==21.10

@@ -10,6 +10,8 @@ class User(AbstractUser):
     phone = models.CharField('Телефон', max_length=20, blank=True, unique=True, null=True)
     phone_verified = models.BooleanField('Телефон подтверждён', default=False)
     birth_date = models.DateField('Дата рождения', null=True, blank=True)
+    telegram_id = models.BigIntegerField('Telegram ID', null=True, blank=True, unique=True)
+    telegram_username = models.CharField('Telegram username', max_length=100, blank=True)
     avatar = models.ImageField('Фото', upload_to='avatars/', blank=True)
 
     USERNAME_FIELD = 'email'
