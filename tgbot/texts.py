@@ -295,6 +295,71 @@ TEXTS = {
         'uz': '\U0001f310 Saytga o\'tish',
         'en': '\U0001f310 Go to site',
     },
+    'reg_success_auto': {
+        'ru': (
+            '\u2705 <b>Аккаунт создан!</b>\n\n'
+            '\U0001f4e7 Email: <code>{email}</code>\n'
+            '\U0001f511 Пароль: <code>{password}</code>\n\n'
+            '\u26a0\ufe0f Сохраните пароль!\n'
+            'Вы уже будете получать уведомления о заказах.'
+        ),
+        'uz': (
+            '\u2705 <b>Akkaunt yaratildi!</b>\n\n'
+            '\U0001f4e7 Email: <code>{email}</code>\n'
+            '\U0001f511 Parol: <code>{password}</code>\n\n'
+            '\u26a0\ufe0f Parolni saqlang!\n'
+            'Endi buyurtmalar haqida xabar olasiz.'
+        ),
+        'en': (
+            '\u2705 <b>Account created!</b>\n\n'
+            '\U0001f4e7 Email: <code>{email}</code>\n'
+            '\U0001f511 Password: <code>{password}</code>\n\n'
+            '\u26a0\ufe0f Save this password!\n'
+            'You will now receive order notifications.'
+        ),
+    },
+    'btn_auto_login': {
+        'ru': '\U0001f680 Войти на сайт',
+        'uz': '\U0001f680 Saytga kirish',
+        'en': '\U0001f680 Log in to site',
+    },
+    'link_success_auto': {
+        'ru': '\u2705 Аккаунт <b>{email}</b> привязан!\n\nНажмите кнопку ниже чтобы войти на сайт:',
+        'uz': '\u2705 <b>{email}</b> akkaunt ulandi!\n\nSaytga kirish uchun quyidagi tugmani bosing:',
+        'en': '\u2705 Account <b>{email}</b> linked!\n\nTap below to log in:',
+    },
+
+    # ── Reply keyboard menu ──────────────────────────────
+    'kb_shop': {
+        'ru': '\U0001f6cd Магазин',
+        'uz': '\U0001f6cd Do\'kon',
+        'en': '\U0001f6cd Shop',
+    },
+    'kb_orders': {
+        'ru': '\U0001f4e6 Мои заказы',
+        'uz': '\U0001f4e6 Buyurtmalarim',
+        'en': '\U0001f4e6 My orders',
+    },
+    'kb_profile': {
+        'ru': '\U0001f464 Профиль',
+        'uz': '\U0001f464 Profil',
+        'en': '\U0001f464 Profile',
+    },
+    'kb_language': {
+        'ru': '\U0001f30d Язык',
+        'uz': '\U0001f30d Til',
+        'en': '\U0001f30d Language',
+    },
+    'kb_help': {
+        'ru': '\u2753 Помощь',
+        'uz': '\u2753 Yordam',
+        'en': '\u2753 Help',
+    },
+    'kb_login': {
+        'ru': '\U0001f511 Войти на сайт',
+        'uz': '\U0001f511 Saytga kirish',
+        'en': '\U0001f511 Log in',
+    },
 }
 
 

@@ -1,6 +1,5 @@
 """
-Webhook endpoint for Telegram bot (production mode).
-For development, use polling: python manage.py tgbot
+Webhook + auto-login endpoints for Telegram bot.
 """
 import hashlib
 import hmac
@@ -9,7 +8,9 @@ import logging
 import time
 
 from django.conf import settings
+from django.contrib.auth import login
 from django.http import JsonResponse, HttpResponseForbidden
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -24,7 +25,6 @@ def webhook(request):
     if not token:
         return JsonResponse({'error': 'Bot not configured'}, status=503)
 
-    # Verify secret token header
     secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
     expected_secret = hashlib.sha256(token.encode()).hexdigest()[:32]
     if secret != expected_secret:
@@ -50,17 +50,37 @@ def webhook(request):
     return JsonResponse({'ok': True})
 
 
+def auto_login(request, token):
+    """One-click login from Telegram bot link."""
+    from tgbot.models import LoginToken
+
+    try:
+        lt = LoginToken.objects.select_related('user').get(token=token)
+    except LoginToken.DoesNotExist:
+        return render(request, 'tgbot/login_error.html', {
+            'error': 'Ссылка недействительна или уже использована.'
+        })
+
+    if not lt.is_valid:
+        return render(request, 'tgbot/login_error.html', {
+            'error': 'Срок действия ссылки истёк. Запросите новую в боте: /start'
+        })
+
+    lt.is_used = True
+    lt.save(update_fields=['is_used'])
+
+    login(request, lt.user, backend='django.contrib.auth.backends.ModelBackend')
+    return redirect('core:home')
+
+
 def telegram_auth(request):
     """Verify Telegram Login Widget data and link/login user."""
     from accounts.models import User
-    from django.contrib.auth import login
-    from django.shortcuts import redirect
 
     token = settings.TELEGRAM_BOT_TOKEN
     if not token:
         return HttpResponseForbidden('Bot not configured')
 
-    # Collect and verify Telegram auth data
     data = {k: v for k, v in request.GET.items() if k != 'hash'}
     received_hash = request.GET.get('hash', '')
 
@@ -71,7 +91,6 @@ def telegram_auth(request):
     if computed_hash != received_hash:
         return HttpResponseForbidden('Invalid auth data')
 
-    # Check auth_date is recent (< 1 day)
     auth_date = int(data.get('auth_date', 0))
     if time.time() - auth_date > 86400:
         return HttpResponseForbidden('Auth data expired')
@@ -81,7 +100,6 @@ def telegram_auth(request):
     tg_first_name = data.get('first_name', '')
     tg_last_name = data.get('last_name', '')
 
-    # Find or create user
     try:
         user = User.objects.get(telegram_id=tg_id)
     except User.DoesNotExist:

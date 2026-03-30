@@ -56,6 +56,35 @@ async def get_linked_user(tg_id: int):
         return None
 
 
+def get_menu_keyboard(lang: str, linked: bool = False) -> ReplyKeyboardMarkup:
+    """Build persistent reply keyboard menu."""
+    if linked:
+        keyboard = [
+            [t('kb_shop', lang), t('kb_orders', lang)],
+            [t('kb_login', lang), t('kb_profile', lang)],
+            [t('kb_language', lang), t('kb_help', lang)],
+        ]
+    else:
+        keyboard = [
+            [t('kb_shop', lang), t('kb_language', lang)],
+            [t('kb_help', lang)],
+        ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+async def generate_login_url(user) -> str:
+    """Create one-time login token and return URL."""
+    from tgbot.models import LoginToken
+    token = await LoginToken.objects.acreate(
+        user=user,
+        token=__import__('secrets').token_urlsafe(32),
+    )
+    # Invalidate old tokens
+    await LoginToken.objects.filter(user=user, is_used=False).exclude(pk=token.pk).aupdate(is_used=True)
+    site_url = getattr(settings, 'SITE_URL', 'http://localhost:8000')
+    return f'{site_url}/telegram/auto-login/{token.token}/'
+
+
 # ── Language selection ────────────────────────────────────
 
 async def cmd_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -125,19 +154,25 @@ async def cmd_start_inner(message, tg_id, first_name, lang, context):
 
     text = f'{greeting}\n\n{t("bot_intro", lang)}\n\n{menu}'
 
-    keyboard = []
+    # Inline buttons
+    inline_keyboard = []
     if WEBAPP_URL.startswith('https://'):
-        keyboard.append([InlineKeyboardButton(
+        inline_keyboard.append([InlineKeyboardButton(
             t('btn_open_shop', lang), web_app=WebAppInfo(url=WEBAPP_URL),
         )])
     if not linked:
-        keyboard.append([
+        inline_keyboard.append([
             InlineKeyboardButton(t('btn_link', lang), callback_data='link'),
             InlineKeyboardButton(t('btn_register', lang), callback_data='register'),
         ])
 
-    reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-    await message.reply_html(text, reply_markup=reply_markup)
+    inline_markup = InlineKeyboardMarkup(inline_keyboard) if inline_keyboard else None
+
+    # Persistent reply keyboard
+    reply_kb = get_menu_keyboard(lang, linked)
+    await message.reply_html(text, reply_markup=reply_kb)
+    if inline_markup:
+        await message.reply_html('\u2b07\ufe0f', reply_markup=inline_markup)
 
 
 # ── /help ─────────────────────────────────────────────────
@@ -268,9 +303,17 @@ async def _try_link(update: Update, context, identifier: str):
     user.language = lang
     await user.asave(update_fields=['telegram_id', 'telegram_username', 'language'])
 
+    # Generate auto-login link
+    login_url = await generate_login_url(user)
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(t('btn_auto_login', lang), url=login_url),
+    ]])
     await update.message.reply_html(
-        t('link_success', lang, email=user.email), reply_markup=ReplyKeyboardRemove(),
+        t('link_success_auto', lang, email=user.email), reply_markup=keyboard,
     )
+    # Show persistent menu keyboard
+    reply_kb = get_menu_keyboard(lang, linked=True)
+    await update.message.reply_html('\u2705', reply_markup=reply_kb)
     return ConversationHandler.END
 
 
@@ -391,12 +434,20 @@ async def register_confirm_cb(update: Update, context: ContextTypes.DEFAULT_TYPE
     user.password = make_password(password)
     await user.asave(update_fields=['password'])
 
-    site_url = getattr(settings, 'SITE_URL', '')
-    text = t('reg_success', lang, email=data['reg_email'], password=password)
-    if site_url:
-        text += f'\n\n<a href="{site_url}">{t("go_to_site", lang)}</a>'
+    text = t('reg_success_auto', lang, email=data['reg_email'], password=password)
 
-    await query.edit_message_text(text, parse_mode='HTML')
+    # Generate auto-login link
+    login_url = await generate_login_url(user)
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(t('btn_auto_login', lang), url=login_url),
+    ]])
+
+    await query.edit_message_text(text, parse_mode='HTML', reply_markup=keyboard)
+
+    # Show persistent menu keyboard
+    reply_kb = get_menu_keyboard(lang, linked=True)
+    await query.message.reply_html('\u2705', reply_markup=reply_kb)
+
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -440,6 +491,60 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_html(t('cancelled', lang), reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
+
+# ── Reply keyboard menu handler ───────────────────────────
+
+async def handle_menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle persistent reply keyboard button presses."""
+    text = update.message.text
+    tg_id = update.effective_user.id
+    lang = await get_lang(tg_id, context) or 'ru'
+
+    # Match by checking all languages
+    for l in ('ru', 'uz', 'en'):
+        if text == t('kb_orders', l):
+            return await cmd_orders(update, context)
+        if text == t('kb_help', l):
+            return await cmd_help(update, context)
+        if text == t('kb_language', l):
+            return await cmd_lang(update, context)
+        if text == t('kb_shop', l):
+            site_url = WEBAPP_URL or getattr(settings, 'SITE_URL', '')
+            await update.message.reply_html(
+                f'\U0001f6cd <a href="{site_url}">{t("btn_open_shop", lang)}</a>'
+            )
+            return
+        if text == t('kb_login', l):
+            user = await get_linked_user(tg_id)
+            if user:
+                login_url = await generate_login_url(user)
+                keyboard = InlineKeyboardMarkup([[
+                    InlineKeyboardButton(t('btn_auto_login', lang), url=login_url),
+                ]])
+                await update.message.reply_html(
+                    '\U0001f511', reply_markup=keyboard,
+                )
+            else:
+                await update.message.reply_html(t('no_account', lang))
+            return
+        if text == t('kb_profile', l):
+            user = await get_linked_user(tg_id)
+            if user:
+                site_url = WEBAPP_URL or getattr(settings, 'SITE_URL', '')
+                login_url = await generate_login_url(user)
+                keyboard = InlineKeyboardMarkup([[
+                    InlineKeyboardButton(t('kb_profile', lang), url=login_url),
+                ]])
+                await update.message.reply_html(
+                    f'\U0001f464 <b>{user.get_full_name()}</b>\n'
+                    f'\U0001f4e7 {user.email}\n'
+                    f'\U0001f4f1 {user.phone or "—"}',
+                    reply_markup=keyboard,
+                )
+            else:
+                await update.message.reply_html(t('no_account', lang))
+            return
 
 
 # ── Fallback callback handler ─────────────────────────────
@@ -512,6 +617,7 @@ def create_application() -> Application:
     app.add_handler(CommandHandler('lang', cmd_lang))
     app.add_handler(CommandHandler('unlink', cmd_unlink))
     app.add_handler(MessageHandler(filters.LOCATION, handle_location))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu_button))
     app.add_handler(CallbackQueryHandler(callback_handler))
 
     return app
