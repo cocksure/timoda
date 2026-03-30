@@ -1,5 +1,5 @@
 """
-Telegram bot command handlers.
+Telegram bot command handlers with i18n (ru/uz/en).
 Run via: python manage.py tgbot
 """
 import logging
@@ -15,6 +15,7 @@ from telegram.ext import (
     Application, CommandHandler, MessageHandler,
     CallbackQueryHandler, ConversationHandler, filters, ContextTypes,
 )
+from tgbot.texts import t
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,6 @@ REG_CONFIRM = 5
 
 
 def normalize_phone(phone: str) -> str:
-    """Normalize phone: +998901234567"""
     digits = re.sub(r'\D', '', phone)
     if digits.startswith('998') and len(digits) == 12:
         return f'+{digits}'
@@ -38,88 +38,126 @@ def normalize_phone(phone: str) -> str:
     return f'+{digits}' if digits else phone
 
 
-# ── Commands ─────────────────────────────────────────────
-
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /start — greet user, show status."""
+async def get_lang(tg_id: int, context: ContextTypes.DEFAULT_TYPE) -> str:
+    """Get user language: from DB if linked, else from context."""
     from accounts.models import User
-
-    tg_user = update.effective_user
-    tg_id = tg_user.id
-
-    # Check if already linked
-    linked = False
     try:
         user = await User.objects.aget(telegram_id=tg_id)
-        linked = True
-        greeting = f'С возвращением, <b>{user.get_full_name()}</b>! \U0001f44b'
+        return user.language or 'ru'
     except User.DoesNotExist:
-        greeting = f'Привет, {tg_user.first_name}! \U0001f44b'
+        return context.user_data.get('lang', '')
 
-    text = (
-        f'{greeting}\n\n'
-        f'Я бот магазина <b>Timoda</b> — премиальный трикотаж.\n\n'
+
+async def get_linked_user(tg_id: int):
+    from accounts.models import User
+    try:
+        return await User.objects.aget(telegram_id=tg_id)
+    except User.DoesNotExist:
+        return None
+
+
+# ── Language selection ────────────────────────────────────
+
+async def cmd_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show language selection."""
+    await _show_lang_picker(update.message)
+
+
+async def _show_lang_picker(message):
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('\U0001f1f7\U0001f1fa Русский', callback_data='lang_ru'),
+            InlineKeyboardButton('\U0001f1fa\U0001f1ff O\'zbek', callback_data='lang_uz'),
+            InlineKeyboardButton('\U0001f1ec\U0001f1e7 English', callback_data='lang_en'),
+        ]
+    ])
+    await message.reply_html(
+        '\U0001f30d <b>Выберите язык / Tilni tanlang / Choose language:</b>',
+        reply_markup=keyboard,
     )
 
+
+async def lang_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle language selection callback."""
+    query = update.callback_query
+    await query.answer()
+
+    lang = query.data.replace('lang_', '')  # ru, uz, en
+    tg_id = query.from_user.id
+    context.user_data['lang'] = lang
+
+    # Save to DB if user is linked
+    user = await get_linked_user(tg_id)
+    if user:
+        user.language = lang
+        await user.asave(update_fields=['language'])
+
+    await query.edit_message_text(t('lang_set', lang), parse_mode='HTML')
+
+    # Show main menu after selecting language
+    await cmd_start_inner(query.message, tg_id, query.from_user.first_name, lang, context)
+
+
+# ── /start ────────────────────────────────────────────────
+
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    tg_user = update.effective_user
+    lang = await get_lang(tg_user.id, context)
+
+    # First time? Show language picker
+    if not lang:
+        await _show_lang_picker(update.message)
+        return
+
+    await cmd_start_inner(update.message, tg_user.id, tg_user.first_name, lang, context)
+
+
+async def cmd_start_inner(message, tg_id, first_name, lang, context):
+    user = await get_linked_user(tg_id)
+    linked = user is not None
+
     if linked:
-        text += (
-            f'\u2705 Аккаунт привязан\n\n'
-            f'\U0001f4e6 /orders — ваши заказы\n'
-            f'\u2753 /help — помощь\n'
-        )
+        greeting = t('welcome_back', lang, name=user.get_full_name())
+        menu = t('menu_linked', lang)
     else:
-        text += (
-            f'Что я умею:\n'
-            f'\U0001f517 /link — привязать существующий аккаунт\n'
-            f'\U0001f4dd /register — создать новый аккаунт\n'
-            f'\U0001f4e6 /orders — ваши заказы\n'
-            f'\u2753 /help — помощь\n'
-        )
+        greeting = t('welcome', lang, name=first_name)
+        menu = t('menu_not_linked', lang)
+
+    text = f'{greeting}\n\n{t("bot_intro", lang)}\n\n{menu}'
 
     keyboard = []
     if WEBAPP_URL.startswith('https://'):
         keyboard.append([InlineKeyboardButton(
-            '\U0001f6cd Открыть магазин',
-            web_app=WebAppInfo(url=WEBAPP_URL),
+            t('btn_open_shop', lang), web_app=WebAppInfo(url=WEBAPP_URL),
         )])
-
     if not linked:
         keyboard.append([
-            InlineKeyboardButton('\U0001f517 Привязать аккаунт', callback_data='link'),
-            InlineKeyboardButton('\U0001f4dd Регистрация', callback_data='register'),
+            InlineKeyboardButton(t('btn_link', lang), callback_data='link'),
+            InlineKeyboardButton(t('btn_register', lang), callback_data='register'),
         ])
 
     reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-    await update.message.reply_html(text, reply_markup=reply_markup)
+    await message.reply_html(text, reply_markup=reply_markup)
 
+
+# ── /help ─────────────────────────────────────────────────
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        '<b>Команды:</b>\n\n'
-        '/start — главное меню\n'
-        '/link — привязать аккаунт Timoda\n'
-        '/register — создать новый аккаунт\n'
-        '/orders — список ваших заказов\n'
-        '/unlink — отвязать аккаунт\n'
-        '/help — эта справка\n'
-    )
-    if WEBAPP_URL.startswith('https://'):
-        text += '\nНажмите кнопку «Магазин» чтобы перейти в каталог.'
-    await update.message.reply_html(text)
+    lang = await get_lang(update.effective_user.id, context)
+    await update.message.reply_html(t('help', lang or 'ru'))
 
+
+# ── /orders ───────────────────────────────────────────────
 
 async def cmd_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show user's recent orders."""
-    from accounts.models import User
     from orders.models import Order
 
     tg_id = update.effective_user.id
-    try:
-        user = await User.objects.aget(telegram_id=tg_id)
-    except User.DoesNotExist:
-        await update.message.reply_html(
-            'Аккаунт не привязан.\n/link — привязать\n/register — создать новый'
-        )
+    lang = await get_lang(tg_id, context) or 'ru'
+    user = await get_linked_user(tg_id)
+
+    if not user:
+        await update.message.reply_html(t('no_account', lang))
         return
 
     orders = []
@@ -127,12 +165,12 @@ async def cmd_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
         orders.append(o)
 
     if not orders:
-        await update.message.reply_html('У вас пока нет заказов. \U0001f6d2')
+        await update.message.reply_html(t('no_orders', lang))
         return
 
     from tgbot.service import STATUS_EMOJI, STATUS_TEXT, format_money
 
-    text = '<b>Ваши последние заказы:</b>\n\n'
+    text = t('your_orders', lang)
     for o in orders:
         emoji = STATUS_EMOJI.get(o.status, '\U0001f4e6')
         status = STATUS_TEXT.get(o.status, o.status)
@@ -147,20 +185,16 @@ async def cmd_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = []
     if WEBAPP_URL.startswith('https://'):
         keyboard.append([InlineKeyboardButton(
-            '\U0001f4cb Все заказы на сайте',
+            t('btn_all_orders', lang),
             web_app=WebAppInfo(url=f'{WEBAPP_URL}/orders/'),
         )])
     reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
     await update.message.reply_html(text, reply_markup=reply_markup)
 
 
-# ── Link account (conversation) ──────────────────────────
+# ── /link (conversation) ─────────────────────────────────
 
 async def link_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Start account linking — offer contact button."""
-    from accounts.models import User
-
-    # Handle both /link command and callback button
     if update.callback_query:
         await update.callback_query.answer()
         message = update.callback_query.message
@@ -169,49 +203,37 @@ async def link_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = update.message
         tg_id = update.effective_user.id
 
-    # Already linked?
-    try:
-        user = await User.objects.aget(telegram_id=tg_id)
-        await message.reply_html(
-            f'\u2705 Аккаунт уже привязан: <b>{user.email}</b>\n'
-            f'/unlink — отвязать'
-        )
+    lang = await get_lang(tg_id, context) or 'ru'
+    context.user_data['lang'] = lang
+
+    user = await get_linked_user(tg_id)
+    if user:
+        await message.reply_html(t('already_linked', lang, email=user.email))
         return ConversationHandler.END
-    except User.DoesNotExist:
-        pass
 
     keyboard = ReplyKeyboardMarkup(
-        [[KeyboardButton('\U0001f4f1 Поделиться контактом', request_contact=True)]],
+        [[KeyboardButton(t('btn_share_contact', lang), request_contact=True)]],
         one_time_keyboard=True, resize_keyboard=True,
     )
-    await message.reply_html(
-        '\U0001f517 <b>Привязка аккаунта</b>\n\n'
-        'Нажмите кнопку ниже чтобы поделиться номером телефона, '
-        'или отправьте <b>email</b> вручную.',
-        reply_markup=keyboard,
-    )
+    await message.reply_html(t('link_prompt', lang), reply_markup=keyboard)
     return LINK_WAITING
 
 
 async def link_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle shared contact for linking."""
-    contact = update.message.contact
-    phone = normalize_phone(contact.phone_number)
-    return await _try_link(update, phone)
+    phone = normalize_phone(update.message.contact.phone_number)
+    return await _try_link(update, context, phone)
 
 
 async def link_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle text input (email or phone) for linking."""
-    text = update.message.text.strip()
-    return await _try_link(update, text)
+    return await _try_link(update, context, update.message.text.strip())
 
 
-async def _try_link(update: Update, identifier: str):
-    """Try to find and link user by email or phone."""
+async def _try_link(update: Update, context, identifier: str):
     from accounts.models import User
     from django.db.models import Q
 
     tg_user = update.effective_user
+    lang = context.user_data.get('lang', 'ru')
     phone_normalized = normalize_phone(identifier)
 
     try:
@@ -220,51 +242,41 @@ async def _try_link(update: Update, identifier: str):
         )
     except User.DoesNotExist:
         keyboard = InlineKeyboardMarkup([[
-            InlineKeyboardButton('\U0001f4dd Зарегистрироваться', callback_data='register'),
+            InlineKeyboardButton(t('btn_register_new', lang), callback_data='register'),
         ]])
         await update.message.reply_html(
-            '\u274c Аккаунт не найден.\n\n'
-            'Проверьте данные или создайте новый аккаунт:',
-            reply_markup=ReplyKeyboardRemove(),
+            t('user_not_found', lang), reply_markup=ReplyKeyboardRemove(),
         )
         await update.message.reply_html(
-            'Нажмите кнопку ниже или /register',
-            reply_markup=keyboard,
+            t('btn_register_new', lang), reply_markup=keyboard,
         )
         return ConversationHandler.END
     except User.MultipleObjectsReturned:
         await update.message.reply_html(
-            'Найдено несколько аккаунтов. Уточните email.',
-            reply_markup=ReplyKeyboardRemove(),
+            t('multiple_accounts', lang), reply_markup=ReplyKeyboardRemove(),
         )
         return LINK_WAITING
 
     if user.telegram_id and user.telegram_id != tg_user.id:
         await update.message.reply_html(
-            '\u26a0\ufe0f Этот аккаунт уже привязан к другому Telegram.',
-            reply_markup=ReplyKeyboardRemove(),
+            t('already_linked_other', lang), reply_markup=ReplyKeyboardRemove(),
         )
         return ConversationHandler.END
 
     user.telegram_id = tg_user.id
     user.telegram_username = tg_user.username or ''
-    await user.asave(update_fields=['telegram_id', 'telegram_username'])
+    user.language = lang
+    await user.asave(update_fields=['telegram_id', 'telegram_username', 'language'])
 
     await update.message.reply_html(
-        f'\u2705 Аккаунт <b>{user.email}</b> успешно привязан!\n\n'
-        f'Теперь вы будете получать уведомления о заказах.',
-        reply_markup=ReplyKeyboardRemove(),
+        t('link_success', lang, email=user.email), reply_markup=ReplyKeyboardRemove(),
     )
     return ConversationHandler.END
 
 
-# ── Register new account (conversation) ──────────────────
+# ── /register (conversation) ─────────────────────────────
 
 async def register_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Start registration flow."""
-    from accounts.models import User
-
-    # Handle both /register command and callback button
     if update.callback_query:
         await update.callback_query.answer()
         message = update.callback_query.message
@@ -273,131 +285,98 @@ async def register_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = update.message
         tg_id = update.effective_user.id
 
-    # Already linked?
-    try:
-        user = await User.objects.aget(telegram_id=tg_id)
-        await message.reply_html(
-            f'\u2705 У вас уже есть аккаунт: <b>{user.email}</b>'
-        )
-        return ConversationHandler.END
-    except User.DoesNotExist:
-        pass
+    lang = await get_lang(tg_id, context) or 'ru'
+    context.user_data['lang'] = lang
 
-    await message.reply_html(
-        '\U0001f4dd <b>Регистрация в Timoda</b>\n\n'
-        'Введите ваше <b>имя и фамилию</b>:\n'
-        'Например: <code>Санжар Махмудов</code>'
-    )
+    user = await get_linked_user(tg_id)
+    if user:
+        await message.reply_html(t('has_account', lang, email=user.email))
+        return ConversationHandler.END
+
+    await message.reply_html(t('reg_enter_name', lang))
     return REG_NAME
 
 
 async def register_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Receive name, ask for phone."""
+    lang = context.user_data.get('lang', 'ru')
     name = update.message.text.strip()
     parts = name.split(maxsplit=1)
     context.user_data['reg_first_name'] = parts[0]
     context.user_data['reg_last_name'] = parts[1] if len(parts) > 1 else ''
 
     keyboard = ReplyKeyboardMarkup(
-        [[KeyboardButton('\U0001f4f1 Поделиться контактом', request_contact=True)]],
+        [[KeyboardButton(t('btn_share_contact', lang), request_contact=True)]],
         one_time_keyboard=True, resize_keyboard=True,
     )
     await update.message.reply_html(
-        f'Отлично, <b>{parts[0]}</b>! \U0001f44b\n\n'
-        f'Теперь отправьте ваш <b>номер телефона</b>.\n'
-        f'Нажмите кнопку ниже или введите вручную:',
-        reply_markup=keyboard,
+        t('reg_enter_phone', lang, name=parts[0]), reply_markup=keyboard,
     )
     return REG_PHONE
 
 
 async def register_phone_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Receive phone from shared contact."""
-    contact = update.message.contact
-    context.user_data['reg_phone'] = normalize_phone(contact.phone_number)
-    return await _ask_email(update, context)
+    context.user_data['reg_phone'] = normalize_phone(update.message.contact.phone_number)
+    lang = context.user_data.get('lang', 'ru')
+    await update.message.reply_html(t('reg_enter_email', lang), reply_markup=ReplyKeyboardRemove())
+    return REG_EMAIL
 
 
 async def register_phone_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Receive phone from text input."""
+    lang = context.user_data.get('lang', 'ru')
     phone = normalize_phone(update.message.text.strip())
     if not re.match(r'^\+998\d{9}$', phone):
-        await update.message.reply_html(
-            '\u274c Неверный формат. Введите номер в формате:\n'
-            '<code>+998901234567</code>'
-        )
+        await update.message.reply_html(t('reg_bad_phone', lang))
         return REG_PHONE
     context.user_data['reg_phone'] = phone
-    return await _ask_email(update, context)
-
-
-async def _ask_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_html(
-        'Введите ваш <b>email</b>:\n'
-        'Например: <code>sanjar@mail.com</code>',
-        reply_markup=ReplyKeyboardRemove(),
-    )
+    await update.message.reply_html(t('reg_enter_email', lang), reply_markup=ReplyKeyboardRemove())
     return REG_EMAIL
 
 
 async def register_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Receive email, show confirmation."""
     from accounts.models import User
 
+    lang = context.user_data.get('lang', 'ru')
     email = update.message.text.strip().lower()
 
-    # Simple email validation
     if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
-        await update.message.reply_html(
-            '\u274c Неверный формат email. Попробуйте снова:'
-        )
+        await update.message.reply_html(t('reg_bad_email', lang))
         return REG_EMAIL
 
-    # Check if email exists
     if await User.objects.filter(email__iexact=email).aexists():
-        await update.message.reply_html(
-            '\u26a0\ufe0f Этот email уже зарегистрирован.\n'
-            'Используйте /link чтобы привязать аккаунт.'
-        )
+        await update.message.reply_html(t('reg_email_exists', lang))
         return ConversationHandler.END
 
     context.user_data['reg_email'] = email
-
     name = f"{context.user_data['reg_first_name']} {context.user_data.get('reg_last_name', '')}".strip()
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton('\u2705 Подтвердить', callback_data='reg_confirm'),
-            InlineKeyboardButton('\u274c Отмена', callback_data='reg_cancel'),
-        ]
-    ])
+
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(t('btn_confirm', lang), callback_data='reg_confirm'),
+        InlineKeyboardButton(t('btn_cancel', lang), callback_data='reg_cancel'),
+    ]])
     await update.message.reply_html(
-        f'\U0001f4cb <b>Проверьте данные:</b>\n\n'
-        f'\U0001f464 Имя: <b>{name}</b>\n'
-        f'\U0001f4f1 Телефон: <b>{context.user_data["reg_phone"]}</b>\n'
-        f'\U0001f4e7 Email: <b>{email}</b>\n\n'
-        f'Всё верно?',
+        t('reg_confirm', lang, name=name, phone=context.user_data['reg_phone'], email=email),
         reply_markup=keyboard,
     )
     return REG_CONFIRM
 
 
-async def register_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Confirm and create account."""
+async def register_confirm_cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    lang = context.user_data.get('lang', 'ru')
 
     if query.data == 'reg_cancel':
-        await query.edit_message_text('Регистрация отменена.')
+        await query.edit_message_text(t('reg_cancelled', lang))
         context.user_data.clear()
         return ConversationHandler.END
 
     from accounts.models import User
+    from django.contrib.auth.hashers import make_password
     import secrets
 
     tg_user = query.from_user
     data = context.user_data
 
-    # Create user
     password = secrets.token_urlsafe(12)
     user = await User.objects.acreate(
         username=f'tg_{tg_user.id}',
@@ -407,93 +386,72 @@ async def register_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         phone=data['reg_phone'],
         telegram_id=tg_user.id,
         telegram_username=tg_user.username or '',
+        language=lang,
     )
-    # Set password
-    from django.contrib.auth.hashers import make_password
     user.password = make_password(password)
     await user.asave(update_fields=['password'])
 
     site_url = getattr(settings, 'SITE_URL', '')
-    await query.edit_message_text(
-        f'\u2705 <b>Аккаунт создан!</b>\n\n'
-        f'\U0001f4e7 Email: <code>{data["reg_email"]}</code>\n'
-        f'\U0001f511 Пароль: <code>{password}</code>\n\n'
-        f'\u26a0\ufe0f Сохраните пароль! Он нужен для входа на сайте.\n'
-        f'Вы уже будете получать уведомления о заказах.\n'
-        + (f'\n\U0001f310 <a href="{site_url}">Перейти на сайт</a>' if site_url else ''),
-        parse_mode='HTML',
-    )
+    text = t('reg_success', lang, email=data['reg_email'], password=password)
+    if site_url:
+        text += f'\n\n<a href="{site_url}">{t("go_to_site", lang)}</a>'
+
+    await query.edit_message_text(text, parse_mode='HTML')
     context.user_data.clear()
     return ConversationHandler.END
 
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancel any conversation."""
-    context.user_data.clear()
-    await update.message.reply_html(
-        'Действие отменено.',
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    return ConversationHandler.END
-
-
-# ── Unlink ───────────────────────────────────────────────
+# ── /unlink ───────────────────────────────────────────────
 
 async def cmd_unlink(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Unlink Telegram from account."""
-    from accounts.models import User
-
     tg_id = update.effective_user.id
-    try:
-        user = await User.objects.aget(telegram_id=tg_id)
+    lang = await get_lang(tg_id, context) or 'ru'
+    user = await get_linked_user(tg_id)
+    if user:
         user.telegram_id = None
         user.telegram_username = ''
         await user.asave(update_fields=['telegram_id', 'telegram_username'])
-        await update.message.reply_html('\u2705 Аккаунт отвязан.')
-    except User.DoesNotExist:
-        await update.message.reply_html('Аккаунт не был привязан.')
+        await update.message.reply_html(t('unlinked', lang))
+    else:
+        await update.message.reply_html(t('not_linked', lang))
 
 
-# ── Location handler ─────────────────────────────────────
+# ── Location ──────────────────────────────────────────────
 
 async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Save user's location for delivery."""
-    from accounts.models import User
-
     tg_id = update.effective_user.id
+    lang = await get_lang(tg_id, context) or 'ru'
     location = update.message.location
 
-    try:
-        user = await User.objects.aget(telegram_id=tg_id)
-    except User.DoesNotExist:
-        await update.message.reply_html(
-            'Сначала привяжите аккаунт: /link или /register'
-        )
+    user = await get_linked_user(tg_id)
+    if not user:
+        await update.message.reply_html(t('location_no_account', lang))
         return
 
-    # Save to user_data for future order
     context.user_data['latitude'] = location.latitude
     context.user_data['longitude'] = location.longitude
-
-    await update.message.reply_html(
-        f'\U0001f4cd <b>Геолокация получена</b>\n\n'
-        f'Широта: {location.latitude:.6f}\n'
-        f'Долгота: {location.longitude:.6f}\n\n'
-        f'Эти координаты будут использованы при оформлении заказа.'
-    )
+    await update.message.reply_html(t('location_received', lang))
 
 
-# ── Callback queries ─────────────────────────────────────
+# ── Cancel ────────────────────────────────────────────────
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = context.user_data.get('lang', 'ru')
+    context.user_data.clear()
+    await update.message.reply_html(t('cancelled', lang), reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+
+# ── Fallback callback handler ─────────────────────────────
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
 
-# ── Setup ────────────────────────────────────────────────
+# ── Setup ─────────────────────────────────────────────────
 
 def create_application() -> Application:
-    """Create and configure the bot application."""
     global WEBAPP_URL
     WEBAPP_URL = getattr(settings, 'TELEGRAM_WEBAPP_URL', '') or getattr(settings, 'SITE_URL', '')
 
@@ -537,19 +495,21 @@ def create_application() -> Application:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, register_email),
             ],
             REG_CONFIRM: [
-                CallbackQueryHandler(register_confirm, pattern='^reg_(confirm|cancel)$'),
+                CallbackQueryHandler(register_confirm_cb, pattern='^reg_(confirm|cancel)$'),
             ],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
         per_message=False,
     )
 
-    # Register handlers (order matters!)
+    # Register handlers
     app.add_handler(link_conv)
     app.add_handler(register_conv)
+    app.add_handler(CallbackQueryHandler(lang_callback, pattern='^lang_'))
     app.add_handler(CommandHandler('start', cmd_start))
     app.add_handler(CommandHandler('help', cmd_help))
     app.add_handler(CommandHandler('orders', cmd_orders))
+    app.add_handler(CommandHandler('lang', cmd_lang))
     app.add_handler(CommandHandler('unlink', cmd_unlink))
     app.add_handler(MessageHandler(filters.LOCATION, handle_location))
     app.add_handler(CallbackQueryHandler(callback_handler))

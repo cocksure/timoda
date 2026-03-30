@@ -12,6 +12,9 @@ class User(AbstractUser):
     birth_date = models.DateField('Дата рождения', null=True, blank=True)
     telegram_id = models.BigIntegerField('Telegram ID', null=True, blank=True, unique=True)
     telegram_username = models.CharField('Telegram username', max_length=100, blank=True)
+    language = models.CharField('Язык', max_length=5, default='ru', choices=[
+        ('ru', 'Русский'), ('uz', "O'zbek"), ('en', 'English'),
+    ])
     avatar = models.ImageField('Фото', upload_to='avatars/', blank=True)
 
     USERNAME_FIELD = 'email'

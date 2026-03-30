@@ -71,6 +71,7 @@ class Command(BaseCommand):
             BotCommand('register', 'Создать аккаунт'),
             BotCommand('link', 'Привязать аккаунт'),
             BotCommand('orders', 'Мои заказы'),
+            BotCommand('lang', 'Язык / Til / Language'),
             BotCommand('unlink', 'Отвязать аккаунт'),
             BotCommand('help', 'Помощь'),
             BotCommand('cancel', 'Отмена'),
